@@ -1,4 +1,7 @@
-import mock
+try:
+    import unittest.mock as mock
+except ImportError:
+    import mock
 import uuid
 from contextlib import contextmanager
 

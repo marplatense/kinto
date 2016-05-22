@@ -5,6 +5,7 @@ from setuptools import setup, find_packages
 
 here = os.path.abspath(os.path.dirname(__file__))
 
+
 def read_file(filename):
     """Open a related file and return its content."""
     with codecs.open(os.path.join(here, filename), encoding='utf-8') as f:
@@ -41,6 +42,13 @@ if installed_with_pypy:
         'psycopg2cffi>2.7.0',
         'zope.sqlalchemy',
     ]
+    SQLALCHEMY_REQUIRES = [
+        'SQLAlchemy',
+        'psycopg2cffi>2.7.0',
+        'pyramid_sqlalchemy,'
+        'zope.sqlalchemy',
+        'colanderalchemy',
+    ]
 else:
     # ujson is not pypy compliant, as it uses the CPython C API
     REQUIREMENTS.append('ujson >= 1.35')
@@ -48,6 +56,13 @@ else:
         'SQLAlchemy',
         'psycopg2>2.5',
         'zope.sqlalchemy',
+    ]
+    SQLALCHEMY_REQUIRES = [
+        'SQLAlchemy',
+        'psycopg2>2.5',
+        'pyramid_sqlalchemy',
+        'zope.sqlalchemy',
+        'colanderalchemy',
     ]
 
 DEPENDENCY_LINKS = [
@@ -100,6 +115,7 @@ setup(name='kinto',
       extras_require={
           'postgresql': POSTGRESQL_REQUIRES,
           'monitoring': MONITORING_REQUIRES,
+          'sqlalchemy': SQLALCHEMY_REQUIRES,
           ":python_version=='2.7'": ["functools32"],
       },
       test_suite="kinto.tests",

@@ -1,4 +1,7 @@
-import mock
+try:
+    import unittest.mock as mock
+except ImportError:
+    import mock
 import requests
 
 from .support import BaseWebTest, unittest

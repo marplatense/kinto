@@ -1,4 +1,7 @@
-import mock
+try:
+    import unittest.mock as mock
+except ImportError:
+    import mock
 
 from kinto.core.authorization import RouteFactory
 from kinto.core.storage import memory

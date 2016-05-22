@@ -11,3 +11,5 @@ docs/_build/
 *.un~
 config/*.ini
 dist
+test.local.cfg
+.idea/

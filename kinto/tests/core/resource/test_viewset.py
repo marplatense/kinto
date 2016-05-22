@@ -1,5 +1,8 @@
 import colander
-import mock
+try:
+    import unittest.mock as mock
+except ImportError:
+    import mock
 from pyramid import exceptions
 from pyramid import testing
 

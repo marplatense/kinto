@@ -1,6 +1,9 @@
 # -*- coding: utf-8 -*-
 import colander
-import mock
+try:
+    import unittest.mock as mock
+except ImportError:
+    import mock
 import uuid
 
 from pyramid.response import Response

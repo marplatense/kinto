@@ -1,7 +1,10 @@
 # -*- coding: utf-8 -*-
 import time
 
-import mock
+try:
+    import unittest.mock as mock
+except ImportError:
+    import mock
 import redis
 from pyramid import testing
 
@@ -13,7 +16,7 @@ from kinto.core.storage import (
     Sort, StorageBase, heartbeat
 )
 
-from .support import (unittest, ThreadMixin, DummyRequest,
+from .support import (unittest, ThreadMixin, DummyRequest, load_default_settings,
                       skip_if_travis, skip_if_no_postgresql)
 
 
@@ -1175,12 +1178,7 @@ class RedisStorageTest(MemoryStorageTest, unittest.TestCase):
 @skip_if_no_postgresql
 class PostgreSQLStorageTest(StorageTest, unittest.TestCase):
     backend = postgresql
-    settings = {
-        'storage_max_fetch_size': 10000,
-        'storage_backend': 'kinto.core.storage.postgresql',
-        'storage_poolclass': 'sqlalchemy.pool.StaticPool',
-        'storage_url': 'postgres://postgres:postgres@localhost:5432/testdb',
-    }
+    settings = load_default_settings('storage')
 
     def setUp(self):
         super(PostgreSQLStorageTest, self).setUp()
