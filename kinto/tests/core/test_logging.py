@@ -3,10 +3,7 @@ import logging
 import os
 import re
 
-try:
-    import unittest.mock as mock
-except ImportError:
-    import mock
+import mock
 import six
 from pyramid import testing
 

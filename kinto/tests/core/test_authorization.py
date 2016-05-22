@@ -1,7 +1,4 @@
-try:
-    import unittest.mock as mock
-except ImportError:
-    import mock
+import mock
 
 from pyramid.request import Request
 

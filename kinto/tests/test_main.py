@@ -5,10 +5,7 @@ except ImportError:
     import __builtin__ as builtins
     builtins_name = '__builtin__'
 
-try:
-    import unittest.mock as mock
-except ImportError:
-    import mock
+import mock
 import os
 import pytest
 import sys

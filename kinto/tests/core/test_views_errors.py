@@ -1,7 +1,4 @@
-try:
-    import unittest.mock as mock
-except ImportError:
-    import mock
+import mock
 from pyramid import httpexceptions
 
 from kinto.core.errors import ERRORS, http_error

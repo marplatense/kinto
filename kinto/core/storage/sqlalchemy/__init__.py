@@ -43,7 +43,7 @@ def populate_timestamps_table(session, flush_context, instances):
             timestamp.last_modified = datetime.datetime.utcnow()
         else:
             timestamp = Timestamps(parent_id=parent_id, collection_id=collection,
-                                   last_modified = datetime.datetime.utcnow())
+                                   last_modified=datetime.datetime.utcnow())
         session.merge(timestamp)
 
 

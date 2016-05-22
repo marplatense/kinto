@@ -1,8 +1,5 @@
 # -*- coding: utf-8 -*-
-try:
-    import unittest.mock as mock
-except ImportError:
-    import mock
+import mock
 import webtest
 
 from pyramid.config import Configurator

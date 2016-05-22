@@ -1,9 +1,6 @@
 import datetime
 
-try:
-    import unittest.mock as mock
-except ImportError:
-    import mock
+import mock
 
 from .support import BaseWebTest, unittest
 from kinto.core.errors import ERRORS

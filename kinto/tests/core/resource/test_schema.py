@@ -1,8 +1,5 @@
 import colander
-try:
-    import unittest.mock as mock
-except ImportError:
-    import mock
+import mock
 
 from kinto.tests.core.support import unittest
 from kinto.core.resource import schema

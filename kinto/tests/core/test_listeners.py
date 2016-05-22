@@ -4,10 +4,7 @@ import uuid
 from contextlib import contextmanager
 from datetime import datetime
 
-try:
-    import unittest.mock as mock
-except ImportError:
-    import mock
+import mock
 from pyramid import testing
 
 from kinto.core import initialization

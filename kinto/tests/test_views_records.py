@@ -1,8 +1,5 @@
 import json
-try:
-    import unittest.mock as mock
-except ImportError:
-    import mock
+import mock
 
 from kinto.core.utils import decode_header
 from .support import (BaseWebTest, unittest, MINIMALIST_RECORD,

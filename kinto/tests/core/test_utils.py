@@ -3,10 +3,7 @@ from __future__ import unicode_literals
 import os
 
 import colander
-try:
-    import unittest.mock as mock
-except ImportError:
-    import mock
+import mock
 import six
 from kinto.core import includeme
 from kinto.core import DEFAULT_SETTINGS

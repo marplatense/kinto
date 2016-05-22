@@ -1,10 +1,7 @@
 import random
 from base64 import b64encode, b64decode
 
-try:
-    import unittest.mock as mock
-except ImportError:
-    import mock
+import mock
 from six.moves.urllib.parse import parse_qs, urlparse
 from pyramid.httpexceptions import HTTPBadRequest
 

@@ -1,8 +1,5 @@
 import configparser
-try:
-    import unittest.mock as mock
-except ImportError:
-    import mock
+import mock
 import os
 import threading
 import functools
