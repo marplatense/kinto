@@ -37,11 +37,20 @@ class Timestamps(BaseObject):
 
 @event.listens_for(Session, 'before_flush')
 def populate_timestamps_table(session, flush_context, instances):
-    for instance in session.new:
-        if getattr(instance, 'is_timestamp_trackeable', False):
-            timestamp = session.query(Timestamps).get([instance.parent_id, classname(instance)])
+    for parent_id, collection in filter_instances(session.new):
+        timestamp = session.query(Timestamps).get([parent_id, collection])
+        if timestamp:
             timestamp.last_modified = datetime.datetime.utcnow()
-            session.merge(timestamp)
+        else:
+            timestamp = Timestamps(parent_id=parent_id, collection_id=collection,
+                                   last_modified = datetime.datetime.utcnow())
+        session.merge(timestamp)
+
+
+def filter_instances(instances):
+    return set([(i.parent_id, classname(i)) for i in instances if getattr(i, 'is_timestamp_trackeable', False)])
+
+
 
 
 class Storage(StorageBase):
