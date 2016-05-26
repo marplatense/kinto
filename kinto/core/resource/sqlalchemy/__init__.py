@@ -13,6 +13,15 @@ from ...resource import ShareableResource, ResourceSchema
 key = SQLAlchemySchemaNode.sqla_info_key
 
 
+class NoSchemaException(Exception):
+
+    def __init__(self, klass):
+        logger.exception('Schema for collection {} has not been set'.format(klass.__name__))
+
+    def __str__(self):
+        return 'Schema not set for model. Have you executed configure_mappers?'
+
+
 class SQLABaseObject(object):
 
     _track_timestamp = True
@@ -31,19 +40,19 @@ class SQLABaseObject(object):
     def last_modified_timestamp(self):
         return self.last_modified.replace(tzinfo=datetime.timezone.utc).timestamp()
 
-    def deserialize(self):
+    @classmethod
+    def deserialize(cls, cstruct):
         try:
-            return self.__schema__.dictify(self)
+            return cls.__schema__.deserialize(cstruct)
         except AttributeError:
-            logger.exception('Schema for collection %s has not been set', self)
-            raise Exception('Schema not set for model')
+            raise NoSchemaException(cls)
 
-    def serialize(self, dict_, context=None):
+    @classmethod
+    def serialize(cls, appstruct):
         try:
-            return self.__schema__.objectify(dict_, context)
+            return cls.__schema__.serialize(appstruct)
         except AttributeError:
-            logger.exception('Schema for collection %s has not been set', self)
-            raise Exception('Schema not set for model')
+            raise NoSchemaException(cls)
 
     def __repr__(self):
         return '{class_name}{attributes}'.format(class_name=self.__class__.__name__,
