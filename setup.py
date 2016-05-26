@@ -29,7 +29,7 @@ REQUIREMENTS = [
     'redis',  # Default backend
     'requests',
     'six',
-    'structlog',
+    'structlog >= 16.1.0',
     'enum34',
     'waitress',
 ]
@@ -86,7 +86,7 @@ ENTRY_POINTS = {
 
 
 setup(name='kinto',
-      version='3.0.2.dev0',
+      version='3.1.1.dev0',
       description='Kinto Web Service - Store, Sync, Share, and Self-Host.',
       long_description=README + "\n\n" + CHANGELOG + "\n\n" + CONTRIBUTORS,
       license='Apache License (2.0)',

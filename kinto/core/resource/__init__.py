@@ -7,6 +7,7 @@ import venusian
 import six
 from pyramid import exceptions as pyramid_exceptions
 from pyramid.decorator import reify
+from pyramid.security import Everyone
 from pyramid.httpexceptions import (HTTPNotModified, HTTPPreconditionFailed,
                                     HTTPNotFound, HTTPConflict,
                                     HTTPServiceUnavailable)
@@ -245,6 +246,7 @@ class UserResource(object):
         self._raise_412_if_modified()
 
         headers = self.request.response.headers
+
         filters = self._extract_filters()
         limit = self._extract_limit()
         sorting = self._extract_sorting(limit)
@@ -715,6 +717,7 @@ class UserResource(object):
             # resolution in seconds, do not use Pyramid `cache_expires()` in
             # order to omit it.
             response.cache_control.no_cache = True
+            response.cache_control.no_store = True
 
     def _raise_400_if_invalid_id(self, record_id):
         """Raise 400 if specified record id does not match the format excepted
@@ -1104,7 +1107,12 @@ class ShareableResource(UserResource):
 
         # Required by the ShareableModel class.
         self.model.permission = self.request.registry.permission
-        self.model.current_principal = self.request.prefixed_userid
+        if self.request.prefixed_userid is None:
+            # The principal of an anonymous is system.Everyone
+            self.model.current_principal = Everyone
+        else:
+            self.model.current_principal = self.request.prefixed_userid
+
         if self.context:
             self.model.get_permission_object_id = functools.partial(
                 self.context.get_permission_object_id,
@@ -1128,7 +1136,7 @@ class ShareableResource(UserResource):
         filters = super(ShareableResource, self)._extract_filters(queryparams)
 
         ids = self.context.shared_ids
-        if ids:
+        if ids is not None:
             filter_by_id = Filter(self.model.id_field, ids, COMPARISON.IN)
             filters.insert(0, filter_by_id)
 

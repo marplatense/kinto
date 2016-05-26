@@ -95,6 +95,18 @@ class SpecifyRecordPermissionTest(PermissionTest):
         permissions = result['permissions']
         self.assertEqual(sorted(permissions['write']), ['basicauth:userid'])
 
+    def test_write_permission_is_given_to_anonymous(self):
+        request = self.get_request()
+        # Simulate an anonymous PUT
+        request.method = 'PUT'
+        request.validated = {'data': self.record}
+        request.prefixed_userid = None
+        request.matchdict = {'id': self.record['id']}
+        resource = self.resource_class(request=request,
+                                       context=self.get_context())
+        result = resource.put()
+        self.assertIn('system.Everyone', result['permissions']['write'])
+
     def test_permissions_can_be_specified_in_collection_post(self):
         perms = {'write': ['jean-louis']}
         self.resource.request.method = 'POST'
@@ -219,7 +231,7 @@ class GuestCollectionListTest(PermissionTest):
         self.assertEqual(len(result['data']), 0)
 
     def test_permission_backend_is_not_queried_if_not_guest(self):
-        self.resource.context.shared_ids = []
+        self.resource.context.shared_ids = None
         self.resource.request.registry.permission = None  # would fail!
         result = self.resource.collection_get()
         self.assertEqual(len(result['data']), 3)

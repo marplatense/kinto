@@ -3,10 +3,38 @@ Changelog
 
 This document describes changes between each past release.
 
-3.0.2 (unreleased)
+3.1.1 (unreleased)
 ==================
 
 - Nothing changed yet.
+
+
+3.1.0 (2016-05-24)
+==================
+
+**Protocol**
+
+- Added the ``GET /contribute.json`` endpoint for open-source information (fixes #607)
+
+Protocol is now at version **1.6**. See `API changelog <http://kinto.readthedocs.io/en/latest/api/>`_.
+
+
+**Bug fixes**
+
+- Fix internal storage filtering when an empty list of values is provided.
+- Authenticated users are now allowed to obtain an empty list of buckets on
+  ``GET /buckets`` even if no bucket is readable (#454)
+- Fix enabling flush enpoint with ``KINTO_FLUSH_ENDPOINT_ENABLED`` environment variable (fixes #588)
+- Fix reading settings for events listeners from environment variables (fixes #515)
+- Fix principal added to ``write`` permission when a publicly writable object
+  is created/edited (fixes #645)
+- Prevent client to cache and validate authenticated requests (fixes #635)
+- Fix bug that prevented startup if old Cliquet configuration values
+  were still around (#633)
+
+**Documentation**
+
+- Improved documentation about running in production with uWSGI (#543, #545)
 
 
 3.0.1 (2016-05-20)
@@ -96,6 +124,8 @@ This document describes changes between each past release.
 - Add a 'upgrade pip' command in the getting-started docs (#531)
 - Document how to configure the postgresql backend (#533)
 - Document how to upgrade Kinto (#537, #538)
+
+Protocol is now in version **1.5**. See `API changelog <http://kinto.readthedocs.io/en/latest/api/>`_.
 
 
 2.0.0 (2016-03-08)

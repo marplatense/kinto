@@ -65,7 +65,7 @@ To fix this::
 
   socket = /var/run/uwsgi/kinto.sock
 
-Make repository::
+Make sure the directory exists::
 
   sudo mkdir -p /var/run/uwsgi
 
@@ -82,3 +82,47 @@ can also happen with other database encoding. The encoding expected by kinto is
 To remediate this, you can issue the following command, once ``pgsql`` open::
 
   update pg_database set encoding = pg_char_to_encoding('UTF8') where datname = '<your db name>';
+
+
+bind: address already in use
+============================
+
+You will probably have a more precise error message telling you which
+port is already in use: ``listen tcp 0.0.0.0:5432: bind: address
+already in use``.
+
+This happens when you are trying to start a docker image on the same
+port of an existing service running on your machine.
+
+For example, with ``postgresql``, you can either stop the local service::
+
+  sudo service postgresql stop
+
+Or you can run your docker on another port (i.e: ``5433``)::
+
+  postgres=$(sudo docker run -e POSTGRES_PASSWORD=postgres -d -p 5433:5432 postgres)
+
+
+ConnectionError: localhost:6379. nodename nor servname provided, or not known
+=============================================================================
+
+Make sure */etc/hosts* has correct mapping to localhost.
+
+
+IOError: [Errno 24] Too many open files
+=======================================
+
+Make sure that max number of connections to redis-server and the max
+number of file handlers in operating system have access to required
+memory.
+
+To fix this, increase the open file limit for non-root user::
+
+  $ ulimit -n 1024
+
+
+ERROR: InterpreterNotFound: pypy
+================================
+
+You need to install `Pypy <http://pypy.org/>`_ so that it can be found
+by tox.

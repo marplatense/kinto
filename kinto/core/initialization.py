@@ -140,20 +140,6 @@ def setup_requests_scheme(config):
         config.add_subscriber(on_new_request, NewRequest)
 
 
-def setup_vary_headers(config):
-    """Add Vary headers to each response."""
-    settings = config.get_settings()
-
-    vary = aslist(settings.get('vary', 'Authorization'))
-
-    def on_new_request(event):
-        def vary_callback(request, response):
-            response.vary = vary
-        event.request.add_response_callback(vary_callback)
-
-    config.add_subscriber(on_new_request, NewRequest)
-
-
 def setup_deprecation(config):
     config.add_tween("kinto.core.initialization._end_of_life_tween_factory")
 
@@ -401,6 +387,7 @@ def setup_listeners(config):
 
     write_actions = (ACTIONS.CREATE, ACTIONS.UPDATE, ACTIONS.DELETE)
     settings = config.get_settings()
+    project_name = settings.get('project_name', '')
     listeners = aslist(settings['event_listeners'])
 
     for name in listeners:
@@ -412,7 +399,11 @@ def setup_listeners(config):
             prefix = 'event_listeners.%s.' % name.split('.')[-1]
             listener = listener_mod.load_from_config(config, prefix)
         except (ImportError, AttributeError):
-            listener_mod = config.maybe_dotted(settings[prefix + 'use'])
+            module_setting = prefix + "use"
+            # Read from ENV or settings.
+            module_value = utils.read_env(project_name + "." + module_setting,
+                                          settings.get(module_setting))
+            listener_mod = config.maybe_dotted(module_value)
             listener = listener_mod.load_from_config(config, prefix)
 
         # If StatsD is enabled, monitor execution time of listeners.
@@ -421,13 +412,25 @@ def setup_listeners(config):
             key = 'listeners.%s' % name
             listener = statsd_client.timer(key)(listener.__call__)
 
-        actions = aslist(settings.get(prefix + 'actions', ''))
+        # Optional filter by event action.
+        actions_setting = prefix + "actions"
+        # Read from ENV or settings.
+        actions_value = utils.read_env(project_name + "." + actions_setting,
+                                       settings.get(actions_setting, ""))
+        actions = aslist(actions_value)
         if len(actions) > 0:
             actions = ACTIONS.from_string_list(actions)
         else:
             actions = write_actions
 
-        resource_names = aslist(settings.get(prefix + 'resources', ''))
+        # Optional filter by event resource name.
+        resource_setting = prefix + "resources"
+        # Read from ENV or settings.
+        resource_value = utils.read_env(project_name + "." + resource_setting,
+                                        settings.get(resource_setting, ""))
+        resource_names = aslist(resource_value)
+
+        # Pyramid event predicates.
         options = dict(for_actions=actions, for_resources=resource_names)
 
         if ACTIONS.READ in actions:
