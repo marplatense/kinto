@@ -28,7 +28,7 @@ class SQLABaseObject(object):
 
     id = Column(Integer(), primary_key=True, info={key: {'repr': True}})
     parent_id = Column(String(), nullable=False, index=True, info={key: {'exclude': True}})
-    last_modified = Column(BigInteger(), nullable=False)
+    last_modified = Column(BigInteger(), nullable=False, default=lambda: datetime.datetime.utcnow())
     deleted = Column(Boolean(), default=False, index=True, info={key: {'exclude': True}})
 
     @property
@@ -82,13 +82,13 @@ class SQLAUserResource(ShareableResource):
 def schema_setup(mapper, klass):
     if not hasattr(klass, '__schema__'):
         klass.__schema__ = SQLASchemaResource(klass)
+        for child in klass.__schema__.children:
+            if isinstance(child.preparer, str):
+                child.preparer = getattr(klass, child.preparer, None)
+            if isinstance(child.validator, str):
+                child.validator = getattr(klass, child.validator, None)
+
 
 event.listen(mapper, 'mapper_configured', schema_setup)
-
-
-def append_schema(target, context):
-    if not hasattr(target, '__schema__'):
-        target.__schema__ = SQLASchemaResource(target)
-
 
 Base = declarative_base(cls=(BaseObject, SQLABaseObject), metadata=metadata)
