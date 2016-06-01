@@ -6,7 +6,22 @@ This document describes changes between each past release.
 3.1.1 (unreleased)
 ==================
 
-- Nothing changed yet.
+**New features**
+
+- ``kinto start`` now accepts a ``--port`` option to specify which port to listen to.
+  **Important**: Because of a limitation in `Pyramid tooling <http://stackoverflow.com/a/21228232/147077>`_,
+  it won't work if the port is hard-coded in your existing ``.ini`` file. Replace
+  it by ``%(http_port)s`` or regenerate a new configuration file with ``kinto init``.
+- Add support for ``pool_timeout`` option in Redis backend (fixes #620)
+
+**Bug fixes**
+
+- Fix loss of data attributes when permissions are replaced with ``PUT`` (fixes #601)
+- Fix 400 response when posting data with ``id: "default"`` in default bucket.
+
+**Internal changes**
+
+- Renamed some permission backend methods for consistency with other classes (fixes #608)
 
 
 3.1.0 (2016-05-24)
