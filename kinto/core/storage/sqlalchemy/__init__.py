@@ -51,8 +51,6 @@ def filter_instances(instances):
     return set([(i.parent_id, classname(i)) for i in instances if getattr(i, 'is_timestamp_trackeable', False)])
 
 
-
-
 class Storage(StorageBase):
 
     id_generator = IntegerId()
