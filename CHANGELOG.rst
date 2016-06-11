@@ -6,6 +6,12 @@ This document describes changes between each past release.
 3.1.1 (unreleased)
 ==================
 
+**Protocol**
+
+- Allow record IDs to be any string instead of just UUIDs (fixes #655).
+
+Protocol is now at version **1.7**. See `API changelog <http://kinto.readthedocs.io/en/latest/api/>`_.
+
 **New features**
 
 - ``kinto start`` now accepts a ``--port`` option to specify which port to listen to.
@@ -13,16 +19,25 @@ This document describes changes between each past release.
   it won't work if the port is hard-coded in your existing ``.ini`` file. Replace
   it by ``%(http_port)s`` or regenerate a new configuration file with ``kinto init``.
 - Add support for ``pool_timeout`` option in Redis backend (fixes #620)
+- Add new setting ``kinto.heartbeat_timeout_seconds`` to control the maximum duration
+  of the heartbeat endpoint (fixes #601)
 
 **Bug fixes**
 
 - Fix loss of data attributes when permissions are replaced with ``PUT`` (fixes #601)
 - Fix 400 response when posting data with ``id: "default"`` in default bucket.
+- Fix 500 on heartbeat endpoint when a check does not follow the specs and raises instead of
+  returning false.
 
 **Internal changes**
 
 - Renamed some permission backend methods for consistency with other classes (fixes #608)
+- Removed some deprecated code that had been in ``kinto.core`` for too long.
 
+**Documentation**
+
+- Mention in groups documentation that the principal of a group to be used in a permissions
+  definition is the full URI (e.g. ``"write": ["/buckets/blog/groups/authors"]``)
 
 3.1.0 (2016-05-24)
 ==================
