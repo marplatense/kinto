@@ -3,14 +3,23 @@ Changelog
 
 This document describes changes between each past release.
 
-3.1.1 (unreleased)
+3.3.0 (unreleased)
+==================
+
+**Bug fixes**
+
+- Fix crash with PostgreSQL storage backend when provided id in POST is an integer (#688).
+  Regression introduced in 3.2.0 with #655.
+
+
+3.2.0 (2016-06-14)
 ==================
 
 **Protocol**
 
 - Allow record IDs to be any string instead of just UUIDs (fixes #655).
 
-Protocol is now at version **1.7**. See `API changelog <http://kinto.readthedocs.io/en/latest/api/>`_.
+Protocol is now at version **1.7**. See `API changelog <https://kinto.readthedocs.io/en/latest/api/>`_.
 
 **New features**
 
@@ -38,6 +47,12 @@ Protocol is now at version **1.7**. See `API changelog <http://kinto.readthedocs
 
 - Mention in groups documentation that the principal of a group to be used in a permissions
   definition is the full URI (e.g. ``"write": ["/buckets/blog/groups/authors"]``)
+- Fix typo in Github tutorial (thanks @SwhGo_oN, #673)
+- New Kinto logo (thanks @AymericFaivre, #676)
+- Add a slack badge to the README (#675)
+- Add new questions on FAQ (thanks @enguerran, #678)
+- Fix links to examples (thanks @maxdow, #680)
+
 
 3.1.0 (2016-05-24)
 ==================
@@ -46,7 +61,7 @@ Protocol is now at version **1.7**. See `API changelog <http://kinto.readthedocs
 
 - Added the ``GET /contribute.json`` endpoint for open-source information (fixes #607)
 
-Protocol is now at version **1.6**. See `API changelog <http://kinto.readthedocs.io/en/latest/api/>`_.
+Protocol is now at version **1.6**. See `API changelog <https://kinto.readthedocs.io/en/latest/api/>`_.
 
 
 **Bug fixes**
@@ -155,7 +170,7 @@ Protocol is now at version **1.6**. See `API changelog <http://kinto.readthedocs
 - Document how to configure the postgresql backend (#533)
 - Document how to upgrade Kinto (#537, #538)
 
-Protocol is now in version **1.5**. See `API changelog <http://kinto.readthedocs.io/en/latest/api/>`_.
+Protocol is now in version **1.5**. See `API changelog <https://kinto.readthedocs.io/en/latest/api/>`_.
 
 
 2.0.0 (2016-03-08)
@@ -178,7 +193,7 @@ Protocol is now in version **1.5**. See `API changelog <http://kinto.readthedocs
 - Add the ``flush_endpoint``, ``schema`` and ``default_bucket`` to the capabilities
   if enabled in settings (#270)
 
-Protocol is now in version **1.4**. See `API changelog <http://kinto.readthedocs.io/en/latest/api/>`_.
+Protocol is now in version **1.4**. See `API changelog <https://kinto.readthedocs.io/en/latest/api/>`_.
 
 **Breaking changes**
 
@@ -208,7 +223,7 @@ Protocol is now in version **1.4**. See `API changelog <http://kinto.readthedocs
 - Monitor time of events listeners execution (mozilla-services/cliquet#503)
 - Added a new ``AfterResourceChanged`` event, that is sent only when the commit
   in database is done and successful.
-  `See more details <http://cliquet.readthedocs.io/en/latest/reference/notifications.html>`_.
+  `See more details <https://cliquet.readthedocs.io/en/latest/reference/notifications.html>`_.
 - Track execution time on StatsD for each authentication sub-policy (mozilla-services/cliquet#639)
 - Default console log renderer now has colours (mozilla-service/cliquet#671)
 - Output Kinto version with ``kinto --version`` (thanks @ayusharma)
@@ -296,7 +311,7 @@ Protocol is now in version **1.4**. See `API changelog <http://kinto.readthedocs
   root URL (#628). Clients can rely on this to detect optional features on the
   server (e.g. enabled plugins)
 
-Protocol is now version 1.3. See `API changelog <http://kinto.readthedocs.io/en/latest/api/>`_.
+Protocol is now version 1.3. See `API changelog <https://kinto.readthedocs.io/en/latest/api/>`_.
 
 **New features**
 
@@ -751,7 +766,7 @@ Settings
   to use PostgreSQL instead of *Redis* (see default ``config/kinto.ini``)
 - ``cliquet.basic_auth_enabled`` is now deprecated (`see *Cliquet*
   docs to enable authentication backends
-  <http://cliquet.readthedocs.io/en/latest/reference/configuration.html#basic-auth>`_)
+  <https://cliquet.readthedocs.io/en/latest/reference/configuration.html#basic-auth>`_)
 
 
 **Internal changes**

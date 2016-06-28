@@ -72,9 +72,9 @@ copyright = u'2015-2016 — Mozilla Services'
 # built documents.
 #
 # The short X.Y version.
-version = '3.1'
+version = '3.2'
 # The full version, including alpha/beta/rc tags.
-release = '3.1.0'
+release = '3.2.0'
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
@@ -101,7 +101,7 @@ autodoc_member_order = 'bysource'
 
 extlinks = {
     'github': ('https://github.com/%s/', ''),
-    'rtd': ('http://%s.readthedocs.io', ''),
+    'rtd': ('https://%s.readthedocs.io', ''),
     'blog': ('http://www.servicedenuages.fr/%s', '')
 }
 
@@ -115,9 +115,9 @@ def setup(app):
 # -- Options for intersphinx --------------------------------------------------
 
 intersphinx_mapping = {
-    'colander': ('http://colander.readthedocs.io/en/latest/', None),
-    'cornice': ('http://cornice.readthedocs.io/en/latest/', None),
-    'pyramid': ('http://pyramid.readthedocs.io/en/latest/', None)
+    'colander': ('https://colander.readthedocs.io/en/latest/', None),
+    'cornice': ('https://cornice.readthedocs.io/en/latest/', None),
+    'pyramid': ('https://pyramid.readthedocs.io/en/latest/', None)
 }
 
 # -- Options for LaTeX output ---------------------------------------------

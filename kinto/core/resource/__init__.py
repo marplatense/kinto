@@ -717,7 +717,8 @@ class UserResource(object):
 
         :raises: :class:`pyramid.httpexceptions.HTTPBadRequest`
         """
-        if not self.model.id_generator.match(six.text_type(record_id)):
+        is_string = isinstance(record_id, six.string_types)
+        if not is_string or not self.model.id_generator.match(record_id):
             error_details = {
                 'location': 'path',
                 'description': "Invalid record id"
@@ -925,8 +926,9 @@ class UserResource(object):
                     if param == '_to':
                         message = ('_to is now deprecated, '
                                    'you should use _before instead')
-                        url = ('http://kinto.rtfd.org/en/2.4.0/api/resource'
-                               '.html#list-of-available-url-parameters')
+                        url = ('https://kinto.readthedocs.io/en/2.4.0/api/'
+                               'resource.html#list-of-available-url-'
+                               'parameters')
                         send_alert(self.request, message, url)
                     operator = COMPARISON.LT
                 filters.append(
