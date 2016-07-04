@@ -12,7 +12,7 @@ from kinto.authorization import RouteFactory
 __version__ = pkg_resources.get_distribution(__package__).version
 
 # Implemented HTTP API Version
-HTTP_API_VERSION = '1.6'
+HTTP_API_VERSION = '1.8'
 
 # Main kinto logger
 logger = logging.getLogger(__name__)
@@ -28,7 +28,8 @@ DEFAULT_SETTINGS = {
     'bucket_create_principals': Authenticated,
     'multiauth.authorization_policy': (
         'kinto.authorization.AuthorizationPolicy'),
-    'experimental_collection_schema_validation': 'False',
+    'experimental_collection_schema_validation': False,
+    'experimental_permissions_endpoint': False,
     'http_api_version': HTTP_API_VERSION
 }
 
@@ -60,7 +61,7 @@ def main(global_config, config=None, **settings):
     # Scan Kinto views.
     kwargs = {}
 
-    flush_enabled = asbool(settings.get('flush_endpoint_enabled'))
+    flush_enabled = asbool(settings['flush_endpoint_enabled'])
     if flush_enabled:
         config.add_api_capability(
             "flush_endpoint",
@@ -69,7 +70,14 @@ def main(global_config, config=None, **settings):
             url="https://kinto.readthedocs.io/en/latest/configuration/"
                 "settings.html#activating-the-flush-endpoint")
     else:
-        kwargs['ignore'] = 'kinto.views.flush'
+        kwargs['ignore'] = ['kinto.views.flush']
+
+    # Permissions endpoint enabled if permission backend is setup.
+    permissions_endpoint_enabled = (
+        asbool(settings['experimental_permissions_endpoint']) and
+        hasattr(config.registry, 'permission'))
+    if not permissions_endpoint_enabled:
+        kwargs.setdefault('ignore', []).append('kinto.views.permissions')
 
     config.scan("kinto.views", **kwargs)
 
