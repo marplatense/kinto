@@ -1,10 +1,8 @@
 import colander
 
-from kinto.core import resource
+from kinto.core import resource, utils
 from kinto.core.events import ResourceChanged, ACTIONS
 from pyramid.events import subscriber
-
-from kinto.views import NameGenerator
 
 
 class GroupSchema(resource.ResourceSchema):
@@ -22,13 +20,9 @@ class Group(resource.ShareableResource):
 
     mapping = GroupSchema()
 
-    def __init__(self, *args, **kwargs):
-        super(Group, self).__init__(*args, **kwargs)
-        self.model.id_generator = NameGenerator()
-
     def get_parent_id(self, request):
         bucket_id = request.matchdict['bucket_id']
-        parent_id = '/buckets/%s' % bucket_id
+        parent_id = utils.instance_uri(request, 'bucket', id=bucket_id)
         return parent_id
 
 
@@ -42,8 +36,11 @@ def on_groups_deleted(event):
 
     for change in event.impacted_records:
         group = change['old']
-        group_uri = '/buckets/{bucket_id}/groups/{id}'.format(id=group['id'],
-                                                              **event.payload)
+        bucket_id = event.payload['bucket_id']
+        group_uri = utils.instance_uri(event.request, 'group',
+                                       bucket_id=bucket_id,
+                                       id=group['id'])
+
         permission_backend.remove_principal(group_uri)
 
 

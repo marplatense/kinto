@@ -1,11 +1,9 @@
 import colander
 import jsonschema
-from kinto.core import resource
+from kinto.core import resource, utils
 from kinto.core.events import ResourceChanged, ACTIONS
 from jsonschema import exceptions as jsonschema_exceptions
 from pyramid.events import subscriber
-
-from kinto.views import NameGenerator
 
 
 class JSONSchemaMapping(colander.SchemaNode):
@@ -42,13 +40,9 @@ class Collection(resource.ShareableResource):
     mapping = CollectionSchema()
     permissions = ('read', 'write', 'record:create')
 
-    def __init__(self, *args, **kwargs):
-        super(Collection, self).__init__(*args, **kwargs)
-        self.model.id_generator = NameGenerator()
-
     def get_parent_id(self, request):
         bucket_id = request.matchdict['bucket_id']
-        parent_id = '/buckets/%s' % bucket_id
+        parent_id = utils.instance_uri(request, 'bucket', id=bucket_id)
         return parent_id
 
 
@@ -62,8 +56,10 @@ def on_collections_deleted(event):
 
     for change in event.impacted_records:
         collection = change['old']
-        parent_id = '/buckets/%s/collections/%s' % (event.payload['bucket_id'],
-                                                    collection['id'])
+        bucket_id = event.payload['bucket_id']
+        parent_id = utils.instance_uri(event.request, 'collection',
+                                       bucket_id=bucket_id,
+                                       id=collection['id'])
         storage.delete_all(collection_id='record',
                            parent_id=parent_id,
                            with_deleted=False)

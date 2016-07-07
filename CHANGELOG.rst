@@ -21,6 +21,16 @@ Protocol is now at version **1.8**. See `API changelog <http://kinto.readthedocs
   Regression introduced in 3.2.0 with #655.
 - Fix crash with PostgreSQL storage backend is configured as read-only and reaching
   the records endpoint of an unknown collection (fixes #693, related #558)
+- Fix events payloads for actions in the default bucket (fixes #704)
+- Fix bug in object permissions with memory backend
+
+**Internal changes**
+
+- Resource events constructors signatures were changed. The event payload is now
+  built immediately when event is fired instead of during transactoin commit (#704).
+- Fix crash when a resource is registered without record path.
+- Changed behaviour of accessible objects in permissions backend when list of
+  bound permissions is empty.
 
 
 3.2.0 (2016-06-14)
@@ -41,6 +51,7 @@ Protocol is now at version **1.7**. See `API changelog <https://kinto.readthedoc
 - Add support for ``pool_timeout`` option in Redis backend (fixes #620)
 - Add new setting ``kinto.heartbeat_timeout_seconds`` to control the maximum duration
   of the heartbeat endpoint (fixes #601)
+- Ability to define ID generators per object type via the settings
 
 **Bug fixes**
 

@@ -1,3 +1,4 @@
+from collections import defaultdict
 import configparser
 import mock
 import os
@@ -45,7 +46,7 @@ class DummyRequest(mock.MagicMock):
         super(DummyRequest, self).__init__(*args, **kwargs)
         self.upath_info = '/v0/'
         self.registry = mock.MagicMock(settings=DEFAULT_SETTINGS.copy())
-        self.registry.id_generator = generators.UUID4()
+        self.registry.id_generators = defaultdict(generators.UUID4)
         self.GET = {}
         self.headers = {}
         self.errors = cornice_errors.Errors(request=self)
