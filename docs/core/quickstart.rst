@@ -11,7 +11,7 @@ Installation
 You can use *Kinto-Core* by doing ``import kinto.core`` in your application.
 
 More details about installation and storage backend is provided in
-:ref:`a dedicated section <installation>`.
+:ref:`a dedicated section <install>`.
 
 
 Start a Pyramid project
@@ -46,7 +46,7 @@ just add some extra initialization code:
     def main(global_config, **settings):
         config = Configurator(settings=settings)
 
-        kinto.core.initialize(config, __version__)
+        kinto.core.initialize(config, __version__, 'myproject')
         return config.make_wsgi_app()
 
 
@@ -79,7 +79,7 @@ The next steps will consist in building a custom application using :rtd:`Cornice
 **the Pyramid ecosystem**.
 
 But most likely, it will consist in **defining REST resources** using *Kinto-Core*\ 's
-python API !
+Python API !
 
 
 Authentication
@@ -124,7 +124,7 @@ In application initialization, make *Pyramid* aware of it:
     def main(global_config, **settings):
         config = Configurator(settings=settings)
 
-        kinto.core.initialize(config, __version__)
+        kinto.core.initialize(config, __version__, 'myproject')
         config.scan("myproject.views")
         return config.make_wsgi_app()
 
@@ -135,19 +135,14 @@ specify the «in-memory» backends in :file:`development.ini`:
 .. code-block:: ini
 
     # development.ini
-    kinto.cache_backend = kinto.core.cache.memory
-    kinto.storage_backend = kinto.core.storage.memory
-    kinto.permission_backend = kinto.core.permission.memory
+    myproject.cache_backend = kinto.core.cache.memory
+    myproject.storage_backend = kinto.core.storage.memory
+    myproject.permission_backend = kinto.core.permission.memory
 
 
 A Mushroom resource API is now available at the ``/mushrooms/`` URL.
 
-It will accept a bunch of REST operations, as defined in the :doc:`API section
-</api/index>`.
-
-.. warning ::
-
-    Without schema, a resource will not store any field at all!
+It will accept a bunch of REST operations (``GET``, ``POST``, ...).
 
 The next step consists in attaching a schema to the resource, to control
 what fields are accepted and stored.
@@ -172,27 +167,40 @@ Currently, only :rtd:`Colander <colander>` is supported, and it looks like this:
     class MushroomSchema(resource.ResourceSchema):
         name = colander.SchemaNode(colander.String())
 
+        class Options:
+            preserve_unknown = False  # Fails if field is unknown!
+
 
     @resource.register()
     class Mushroom(resource.UserResource):
         mapping = MushroomSchema()
 
 
+Enable middleware
+=================
+
+In order to enable WSGI middleware, wrap the application in the project ``main`` function:
+
+.. code-block:: python
+    :emphasize-lines: 6,7
+
+    def main(global_config, **settings):
+        config = Configurator(settings=settings)
+
+        kinto.core.initialize(config, __version__, 'myproject')
+        config.scan("myproject.views")
+        app = config.make_wsgi_app()
+        return kinto.install_middlewares(app, settings)
+
+
 What's next ?
 =============
-
-Configuration
--------------
-
-See :ref:`configuration` to customize the application settings, such as
-authentication, storage or cache backends.
-
 
 Resource customization
 ----------------------
 
 See :ref:`the resource documentation <resource>` to specify custom URLs,
-schemaless resources, read-only fields, unicity constraints, record pre-processing...
+schemaless resources, read-only fields, record pre-processing...
 
 
 Advanced initialization
@@ -206,5 +214,3 @@ Beyond Kinto-Core
 
 *Kinto-Core* is just a component! The application can still be built and
 extended using the full *Pyramid* ecosystem.
-
-See :ref:`the dedicated section <ecosystem>` for examples of *Kinto-Core* extensions.

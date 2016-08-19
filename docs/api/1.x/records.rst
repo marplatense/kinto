@@ -6,6 +6,14 @@ Records
 Records belong to a collection. It is the data being stored and
 synchronised.
 
+A record is a mapping with the following attributes:
+
+* ``data``: attributes of the record object
+    * ``id``: the record object id
+    * ``last_modified``: the timestamp of the last modification
+* ``permissions``: the :term:`ACLs <ACL>` for the collection object
+
+
 .. _records-post:
 
 Uploading a record
@@ -35,6 +43,7 @@ Uploading a record
         Content-Type: application/json
         Host: localhost:8888
         User-Agent: HTTPie/0.9.2
+
         {
             "data": {
                 "foo": "bar"
@@ -51,6 +60,7 @@ Uploading a record
         Content-Type: application/json; charset=UTF-8
         Date: Thu, 18 Jun 2015 17:02:23 GMT
         Server: waitress
+
         {
             "data": {
                 "foo": "bar",
@@ -64,13 +74,9 @@ Uploading a record
             }
         }
 
-.. important::
+.. include:: _details-post-list.rst
 
-    If the posted record has an ``id`` field, it will be taken into account.
-
-    However, if a record already exists with the same ``id``, a ``200 OK`` response
-    is returned with the existing record in body (instead of ``201 Created``).
-    See https://github.com/Kinto/kinto/issues/140
+.. include:: _status-post-list.rst
 
 
 .. _record-put:
@@ -81,6 +87,12 @@ Replacing a record
 .. http:put:: /buckets/(bucket_id)/collections/(collection_id)/records/(record_id)
 
     :synopsis: Create or update a record in the collection.
+
+    The POST body is a JSON mapping containing:
+
+    - ``data``: the fields of the record;
+    - ``permissions``: *optional* a json dict containing the permissions for
+      the record to be created.
 
     **Requires authentication**
 
@@ -131,6 +143,10 @@ Replacing a record
               ]
           }
         }
+
+.. include:: _details-put-object.rst
+
+.. include:: _status-put-object.rst
 
 
 .. _record-patch:
@@ -194,16 +210,15 @@ Updating a record
           }
         }
 
+.. include:: _details-patch-object.rst
+
+.. include:: _status-patch-object.rst
+
 
 .. _records-get:
 
 Retrieving stored records
 =========================
-
-Records can be paginated and filtered, and conflicts can be detected.
-
-To do so, refer to :ref:`resource-endpoints` for more details on available
-operations on collection retrieval.
 
 .. http:get:: /buckets/(bucket_id)/collections/(collection_id)/records
 

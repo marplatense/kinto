@@ -6,7 +6,7 @@ import six
 
 from kinto.core import logger
 from kinto.core.storage import (
-    StorageBase, exceptions, Filter,
+    StorageBase, exceptions,
     DEFAULT_ID_FIELD, DEFAULT_MODIFIED_FIELD, DEFAULT_DELETED_FIELD)
 from kinto.core.storage.postgresql.client import create_from_config
 from kinto.core.utils import COMPARISON, json
@@ -47,7 +47,8 @@ class Storage(StorageBase):
         kinto.storage_max_backlog = -1
         kinto.storage_pool_recycle = -1
         kinto.storage_pool_timeout = 30
-        kinto.cache_poolclass = kinto.core.storage.postgresql.pool.QueuePoolWithMaxBacklog
+        kinto.cache_poolclass =
+            kinto.core.storage.postgresql.pool.QueuePoolWithMaxBacklog
 
     The ``max_backlog``  limits the number of threads that can be in the queue
     waiting for a connection.  Once this limit has been reached, any further
@@ -66,7 +67,7 @@ class Storage(StorageBase):
 
     """  # NOQA
 
-    schema_version = 11
+    schema_version = 13
 
     def __init__(self, client, max_fetch_size, *args, **kwargs):
         super(Storage, self).__init__(*args, **kwargs)
@@ -74,48 +75,59 @@ class Storage(StorageBase):
         self._max_fetch_size = max_fetch_size
 
     def _execute_sql_file(self, filepath):
-        here = os.path.abspath(os.path.dirname(__file__))
-        schema = open(os.path.join(here, filepath)).read()
+        schema = open(filepath).read()
         # Since called outside request, force commit.
         with self.client.connect(force_commit=True) as conn:
             conn.execute(schema)
 
-    def initialize_schema(self):
+    def initialize_schema(self, dry_run=False):
         """Create PostgreSQL tables, and run necessary schema migrations.
 
         .. note::
 
             Relies on JSONB fields, available in recent versions of PostgreSQL.
         """
+        here = os.path.abspath(os.path.dirname(__file__))
+
         version = self._get_installed_version()
         if not version:
+            filepath = os.path.join(here, 'schema.sql')
+            logger.info("Create PostgreSQL storage schema at version "
+                        "%s from %s" % (self.schema_version, filepath))
             # Create full schema.
             self._check_database_encoding()
             self._check_database_timezone()
             # Create full schema.
-            self._execute_sql_file('schema.sql')
-            logger.info('Created PostgreSQL storage tables '
-                        '(version %s).' % self.schema_version)
+            if not dry_run:
+                self._execute_sql_file(filepath)
+                logger.info('Created PostgreSQL storage schema '
+                            '(version %s).' % self.schema_version)
             return
 
-        logger.debug('Detected PostgreSQL schema version %s.' % version)
+        logger.info('Detected PostgreSQL storage schema version %s.' % version)
         migrations = [(v, v + 1) for v in range(version, self.schema_version)]
         if not migrations:
-            logger.info('Schema is up-to-date.')
+            logger.info('PostgreSQL storage schema is up-to-date.')
+            return
 
         for migration in migrations:
             # Check order of migrations.
             expected = migration[0]
             current = self._get_installed_version()
             error_msg = "Expected version %s. Found version %s."
-            if expected != current:
+            if not dry_run and expected != current:
                 raise AssertionError(error_msg % (expected, current))
 
-            logger.info('Migrate schema from version %s to %s.' % migration)
-            filepath = 'migration_%03d_%03d.sql' % migration
-            self._execute_sql_file(os.path.join('migrations', filepath))
-
-        logger.info('Schema migration done.')
+            logger.info('Migrate PostgreSQL storage schema from'
+                        ' version %s to %s.' % migration)
+            filename = 'migration_%03d_%03d.sql' % migration
+            filepath = os.path.join(here, 'migrations', filename)
+            logger.info("Execute PostgreSQL storage migration"
+                        " from %s" % filepath)
+            if not dry_run:
+                self._execute_sql_file(filepath)
+        logger.info("PostgreSQL storage schema migration " +
+                    ("simulated." if dry_run else "done."))
 
     def _check_database_timezone(self):
         # Make sure database has UTC timezone.
@@ -203,12 +215,20 @@ class Storage(StorageBase):
         return record['last_modified']
 
     def create(self, collection_id, parent_id, record, id_generator=None,
-               unique_fields=None, id_field=DEFAULT_ID_FIELD,
+               id_field=DEFAULT_ID_FIELD,
                modified_field=DEFAULT_MODIFIED_FIELD,
                auth=None):
         id_generator = id_generator or self.id_generator
         record = record.copy()
-        record_id = record.setdefault(id_field, id_generator())
+        if id_field in record:
+            # Raise unicity error if record with same id already exists.
+            try:
+                existing = self.get(collection_id, parent_id, record[id_field])
+                raise exceptions.UnicityError(id_field, existing)
+            except exceptions.RecordNotFoundError:
+                pass
+        else:
+            record[id_field] = id_generator()
 
         query = """
         WITH delete_potential_tombstone AS (
@@ -223,16 +243,12 @@ class Storage(StorageBase):
                 from_epoch(:last_modified))
         RETURNING id, as_epoch(last_modified) AS last_modified;
         """
-        placeholders = dict(object_id=record_id,
+        placeholders = dict(object_id=record[id_field],
                             parent_id=parent_id,
                             collection_id=collection_id,
                             last_modified=record.get(modified_field),
                             data=json.dumps(record))
         with self.client.connect() as conn:
-            # Check that it does violate the resource unicity rules.
-            self._check_unicity(conn, collection_id, parent_id, record,
-                                unique_fields, id_field, modified_field,
-                                for_creation=True)
             result = conn.execute(query, placeholders)
             inserted = result.fetchone()
 
@@ -266,10 +282,16 @@ class Storage(StorageBase):
         return record
 
     def update(self, collection_id, parent_id, object_id, record,
-               unique_fields=None, id_field=DEFAULT_ID_FIELD,
+               id_field=DEFAULT_ID_FIELD,
                modified_field=DEFAULT_MODIFIED_FIELD,
                auth=None):
         query_create = """
+        WITH delete_potential_tombstone AS (
+            DELETE FROM deleted
+             WHERE id = :object_id
+               AND parent_id = :parent_id
+               AND collection_id = :collection_id
+        )
         INSERT INTO records (id, parent_id, collection_id, data, last_modified)
         VALUES (:object_id, :parent_id,
                 :collection_id, (:data)::JSONB,
@@ -295,9 +317,6 @@ class Storage(StorageBase):
         record[id_field] = object_id
 
         with self.client.connect() as conn:
-            # Check that it does violate the resource unicity rules.
-            self._check_unicity(conn, collection_id, parent_id, record,
-                                unique_fields, id_field, modified_field)
             # Create or update ?
             query = """
             SELECT id FROM records
@@ -371,31 +390,43 @@ class Storage(StorageBase):
             WITH deleted_records AS (
                 DELETE
                 FROM records
-                WHERE parent_id = :parent_id
-                  AND collection_id = :collection_id
-                  %(conditions_filter)s
-                RETURNING id
+                WHERE %(parent_id_filter)s
+                      %(collection_id_filter)s
+                      %(conditions_filter)s
+                RETURNING id, parent_id, collection_id
             )
             INSERT INTO deleted (id, parent_id, collection_id)
-            SELECT id, :parent_id, :collection_id
+            SELECT id, parent_id, collection_id
               FROM deleted_records
             RETURNING id, as_epoch(last_modified) AS last_modified;
             """
         else:
             query = """
-                DELETE
-                FROM records
-                WHERE parent_id = :parent_id
-                  AND collection_id = :collection_id
+            DELETE
+            FROM records
+            WHERE %(parent_id_filter)s
+                  %(collection_id_filter)s
                   %(conditions_filter)s
-                RETURNING id, as_epoch(last_modified) AS last_modified;
+            RETURNING id, as_epoch(last_modified) AS last_modified;
             """
+
         id_field = id_field or self.id_field
         modified_field = modified_field or self.modified_field
         placeholders = dict(parent_id=parent_id,
                             collection_id=collection_id)
         # Safe strings
         safeholders = defaultdict(six.text_type)
+        # Handle parent_id as a regex only if it contains *
+        if '*' in parent_id:
+            safeholders['parent_id_filter'] = 'parent_id ~ :parent_id'
+            placeholders['parent_id'] = parent_id.replace('*', '.*')
+        else:
+            safeholders['parent_id_filter'] = 'parent_id = :parent_id'
+        # If collection is None, remove it from query.
+        if collection_id is None:
+            safeholders['collection_id_filter'] = ''
+        else:
+            safeholders['collection_id_filter'] = 'AND collection_id = :collection_id'  # NOQA
 
         if filters:
             safe_sql, holders = self._format_conditions(filters,
@@ -425,9 +456,9 @@ class Storage(StorageBase):
         query = """
         DELETE
         FROM deleted
-        WHERE parent_id = :parent_id
-          AND collection_id = :collection_id
-          %(conditions_filter)s;
+        WHERE %(parent_id_filter)s
+              %(collection_id_filter)s
+              %(conditions_filter)s;
         """
         id_field = id_field or self.id_field
         modified_field = modified_field or self.modified_field
@@ -435,6 +466,17 @@ class Storage(StorageBase):
                             collection_id=collection_id)
         # Safe strings
         safeholders = defaultdict(six.text_type)
+        # Handle parent_id as a regex only if it contains *
+        if '*' in parent_id:
+            safeholders['parent_id_filter'] = 'parent_id ~ :parent_id'
+            placeholders['parent_id'] = parent_id.replace('*', '.*')
+        else:
+            safeholders['parent_id_filter'] = 'parent_id = :parent_id'
+        # If collection is None, remove it from query.
+        if collection_id is None:
+            safeholders['collection_id_filter'] = ''
+        else:
+            safeholders['collection_id_filter'] = 'AND collection_id = :collection_id'  # NOQA
 
         if before is not None:
             safeholders['conditions_filter'] = (
@@ -583,16 +625,23 @@ class Storage(StorageBase):
             elif filtr.field == modified_field:
                 sql_field = 'as_epoch(last_modified)'
             else:
-                # Safely escape field name
-                field_holder = '%s_field_%s' % (prefix, i)
-                holders[field_holder] = filtr.field
+                sql_field = "data"
+                # Subfields: ``person.name`` becomes ``data->person->>name``
+                subfields = filtr.field.split('.')
+                for j, subfield in enumerate(subfields):
+                    # Safely escape field name
+                    field_holder = '%s_field_%s_%s' % (prefix, i, j)
+                    holders[field_holder] = subfield
+                    # Use ->> to convert the last level to text.
+                    sql_field += "->>" if j == len(subfields) - 1 else "->"
+                    sql_field += ":%s" % field_holder
 
-                # JSON operator ->> retrieves values as text.
                 # If field is missing, we default to ''.
-                sql_field = "coalesce(data->>:%s, '')" % field_holder
+                sql_field = "coalesce(%s, '')" % sql_field
+                # Cast when comparing to number (eg. '4' < '12')
                 if isinstance(value, (int, float)) and \
                    value not in (True, False):
-                    sql_field = "(data->>:%s)::numeric" % field_holder
+                    sql_field += "::numeric"
 
             if filtr.operator not in (COMPARISON.IN, COMPARISON.EXCLUDE):
                 # For the IN operator, let psycopg escape the values list.
@@ -668,9 +717,15 @@ class Storage(StorageBase):
             elif sort.field == modified_field:
                 sql_field = 'last_modified'
             else:
-                field_holder = 'sort_field_%s' % i
-                holders[field_holder] = sort.field
-                sql_field = 'data->(:%s)' % field_holder
+                # Subfields: ``person.name`` becomes ``data->person->>name``
+                subfields = sort.field.split('.')
+                sql_field = 'data'
+                for j, subfield in enumerate(subfields):
+                    # Safely escape field name
+                    field_holder = 'sort_field_%s_%s' % (i, j)
+                    holders[field_holder] = subfield
+                    # Use ->> to convert the last level to text.
+                    sql_field += '->(:%s)' % field_holder
 
             sql_direction = 'ASC' if sort.direction > 0 else 'DESC'
             sql_sort = "%s %s" % (sql_field, sql_direction)
@@ -678,70 +733,6 @@ class Storage(StorageBase):
 
         safe_sql = 'ORDER BY %s' % (', '.join(sorts))
         return safe_sql, holders
-
-    def _check_unicity(self, conn, collection_id, parent_id, record,
-                       unique_fields, id_field, modified_field,
-                       for_creation=False):
-        """Check that no existing record (in the current transaction snapshot)
-        violates the resource unicity rules.
-        """
-        # If id is provided by client, check that no record conflicts.
-        if for_creation and id_field in record:
-            unique_fields = (unique_fields or tuple()) + (id_field,)
-
-        if not unique_fields:
-            return
-
-        query = """
-        SELECT id
-          FROM records
-         WHERE parent_id = :parent_id
-           AND collection_id = :collection_id
-           AND (%(conditions_filter)s)
-           AND %(condition_record)s
-         LIMIT 1;
-        """
-        safeholders = dict()
-        placeholders = dict(parent_id=parent_id,
-                            collection_id=collection_id)
-
-        # Transform each field unicity into a query condition.
-        filters = []
-        for field in set(unique_fields):
-            value = record.get(field)
-            if value is None:
-                continue
-            sql, holders = self._format_conditions(
-                [Filter(field, value, COMPARISON.EQ)],
-                id_field,
-                modified_field,
-                prefix=field)
-            filters.append(sql)
-            placeholders.update(**holders)
-
-        # All unique fields are empty in record
-        if not filters:
-            return
-
-        safeholders['conditions_filter'] = ' OR '.join(filters)
-
-        # If record is in database, then exclude it of unicity check.
-        if not for_creation:
-            object_id = record[id_field]
-            sql, holders = self._format_conditions(
-                [Filter(id_field, object_id, COMPARISON.NOT)],
-                id_field,
-                modified_field)
-            safeholders['condition_record'] = sql
-            placeholders.update(**holders)
-        else:
-            safeholders['condition_record'] = 'TRUE'
-
-        result = conn.execute(query % safeholders, placeholders)
-        if result.rowcount > 0:
-            existing = result.fetchone()
-            record = self.get(collection_id, parent_id, existing['id'])
-            raise exceptions.UnicityError(unique_fields[0], record)
 
 
 def load_from_config(config):

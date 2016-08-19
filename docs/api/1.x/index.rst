@@ -12,7 +12,6 @@ Full detailed API documentation:
    :maxdepth: 1
 
    authentication
-   resource
    buckets
    collections
    records
@@ -22,6 +21,8 @@ Full detailed API documentation:
    sorting
    pagination
    selecting_fields
+   history
+   quotas
    utilities
    batch
    timestamps
@@ -102,7 +103,3 @@ Cheatsheet
 +----------+----------------------------------------------------------------------------------------------+---------------------------------------------------------+
 | `DELETE` | :ref:`/buckets/(bucket_id)/collections/(collection_id)/records/(record_id) <record-delete>`  | :ref:`Delete a single record <record-delete>`           |
 +----------+----------------------------------------------------------------------------------------------+---------------------------------------------------------+
-
-Buckets, Groups, Collection and Record endpoints are *resource endpoints* which
-can be filtered, paginated, and interacted with as described in
-:ref:`resource-endpoints`.

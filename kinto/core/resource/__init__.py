@@ -8,8 +8,7 @@ from pyramid import exceptions as pyramid_exceptions
 from pyramid.decorator import reify
 from pyramid.security import Everyone
 from pyramid.httpexceptions import (HTTPNotModified, HTTPPreconditionFailed,
-                                    HTTPNotFound, HTTPConflict,
-                                    HTTPServiceUnavailable)
+                                    HTTPNotFound, HTTPServiceUnavailable)
 
 from kinto.core import logger
 from kinto.core import Service
@@ -128,8 +127,8 @@ class UserResource(object):
     """Base resource class providing every endpoint."""
 
     default_viewset = ViewSet
-    """Default :class:`kinto.core.viewset.ViewSet` class to use when the resource
-    is registered."""
+    """Default :class:`kinto.core.resource.viewset.ViewSet` class to use when
+    the resource is registered."""
 
     default_model = Model
     """Default :class:`kinto.core.resource.model.Model` class to use for
@@ -212,12 +211,17 @@ class UserResource(object):
         return known_fields
 
     def is_known_field(self, field):
-        """Return ``True`` if `field` is defined in the resource mapping.
+        """Return ``True`` if `field` is defined in the resource schema.
+        If the resource schema allows unknown fields, this will always return
+        ``True``.
 
         :param str field: Field name
         :rtype: bool
 
         """
+        if self.mapping.get_option('preserve_unknown'):
+            return True
+
         known_fields = self._get_known_fields()
         return field in known_fields
 
@@ -287,7 +291,7 @@ class UserResource(object):
     def collection_post(self):
         """Model ``POST`` endpoint: create a record.
 
-        If the new record conflicts against a unique field constraint, the
+        If the new record id conflicts against an existing one, the
         posted record is ignored, and the existing record is returned, with
         a ``200`` status.
 
@@ -301,31 +305,27 @@ class UserResource(object):
             Add custom behaviour by overriding
             :meth:`kinto.core.resource.UserResource.process_record`
         """
-        existing = None
         new_record = self.request.validated.get('data', {})
         try:
+            # Since ``id`` does not belong to schema, it is not in validated
+            # data. Must look up in body.
             id_field = self.model.id_field
-            # Since ``id`` does not belong to schema, look up in body.
             new_record[id_field] = _id = self.request.json['data'][id_field]
             self._raise_400_if_invalid_id(_id)
             existing = self._get_record_or_404(_id)
         except (HTTPNotFound, KeyError, ValueError):
-            pass
+            existing = None
 
         self._raise_412_if_modified(record=existing)
 
-        new_record = self.process_record(new_record)
-        try:
-            unique_fields = self.mapping.get_option('unique_fields')
-            record = self.model.create_record(new_record,
-                                              unique_fields=unique_fields)
+        if existing:
+            record = existing
+            action = ACTIONS.READ
+        else:
+            new_record = self.process_record(new_record)
+            record = self.model.create_record(new_record)
             self.request.response.status_code = 201
             action = ACTIONS.CREATE
-        except storage_exceptions.UnicityError as e:
-            record = e.record
-            # failed to write
-            action = ACTIONS.READ
-
         return self.postprocess(record, action=action)
 
     def collection_delete(self):
@@ -342,10 +342,11 @@ class UserResource(object):
         self._raise_412_if_modified()
 
         filters = self._extract_filters()
+        records, _ = self.model.get_records(filters=filters)
         deleted = self.model.delete_records(filters=filters)
 
         action = len(deleted) > 0 and ACTIONS.DELETE or ACTIONS.READ
-        return self.postprocess(deleted, action=action)
+        return self.postprocess(deleted, action=action, old=records)
 
     def get(self):
         """Record ``GET`` endpoint: retrieve a record.
@@ -420,17 +421,11 @@ class UserResource(object):
 
         new_record = self.process_record(post_record, old=existing)
 
-        try:
-            unique = self.mapping.get_option('unique_fields')
-            if existing and not tombstones:
-                record = self.model.update_record(new_record,
-                                                  unique_fields=unique)
-            else:
-                record = self.model.create_record(new_record,
-                                                  unique_fields=unique)
-                self.request.response.status_code = 201
-        except storage_exceptions.UnicityError as e:
-            self._raise_conflict(e)
+        if existing and not tombstones:
+            record = self.model.update_record(new_record)
+        else:
+            record = self.model.create_record(new_record)
+            self.request.response.status_code = 201
 
         timestamp = record[self.model.modified_field]
         self._add_timestamp_header(self.request.response, timestamp=timestamp)
@@ -489,13 +484,8 @@ class UserResource(object):
 
         # Save in storage if necessary.
         if changed_fields or self.force_patch_update:
-            try:
-                unique_fields = self.mapping.get_option('unique_fields')
-                new_record = self.model.update_record(
-                    new_record,
-                    unique_fields=unique_fields)
-            except storage_exceptions.UnicityError as e:
-                self._raise_conflict(e)
+            new_record = self.model.update_record(new_record)
+
         else:
             # Behave as if storage would have added `id` and `last_modified`.
             for extra_field in [self.model.modified_field,
@@ -554,7 +544,7 @@ class UserResource(object):
                 last_modified = None
 
         deleted = self.model.delete_record(record, last_modified=last_modified)
-        return self.postprocess(deleted, action=ACTIONS.DELETE)
+        return self.postprocess(deleted, action=ACTIONS.DELETE, old=record)
 
     #
     # Data processing
@@ -591,16 +581,20 @@ class UserResource(object):
         :returns: the processed record.
         :rtype: dict
         """
-        new_last_modified = new.get(self.model.modified_field)
-        not_specified = old is None or self.model.modified_field not in old
+        modified_field = self.model.modified_field
+        new_last_modified = new.get(modified_field)
 
-        if new_last_modified is None or not_specified:
+        # Drop the new last_modified if it is not an integer.
+        is_integer = isinstance(new_last_modified, int)
+        if not is_integer:
+            new.pop(modified_field, None)
             return new
 
         # Drop the new last_modified if lesser or equal to the old one.
-        is_less_or_equal = new_last_modified <= old[self.model.modified_field]
-        if new_last_modified and is_less_or_equal:
-            del new[self.model.modified_field]
+        is_less_or_equal = (old is not None and
+                            new_last_modified <= old[modified_field])
+        if is_less_or_equal:
+            new.pop(modified_field, None)
 
         return new
 
@@ -653,7 +647,9 @@ class UserResource(object):
             'data': result
         }
 
-        self.request.notify_resource_event(timestamp=self.timestamp,
+        parent_id = self.get_parent_id(self.request)
+        self.request.notify_resource_event(parent_id=parent_id,
+                                           timestamp=self.timestamp,
                                            data=result,
                                            action=action,
                                            old=old)
@@ -821,26 +817,6 @@ class UserResource(object):
             self._add_timestamp_header(response, timestamp=current_timestamp)
             raise response
 
-    def _raise_conflict(self, exception):
-        """Helper to raise conflict responses.
-
-        :param exception: the original unicity error
-        :type exception: :class:`kinto.core.storage.exceptions.UnicityError`
-        :raises: :exc:`~pyramid:pyramid.httpexceptions.HTTPConflict`
-        """
-        field = exception.field
-        record_id = exception.record[self.model.id_field]
-        message = 'Conflict of field %s on record %s' % (field, record_id)
-        details = {
-            "field": field,
-            "existing": exception.record,
-        }
-        response = http_error(HTTPConflict(),
-                              errno=ERRORS.CONSTRAINT_VIOLATED,
-                              message=message,
-                              details=details)
-        raise response
-
     def _raise_400_if_id_mismatch(self, new_id, record_id):
         """Raise 400 if the `new_id`, within the request body, does not match
         the `record_id`, obtained from request path.
@@ -874,7 +850,7 @@ class UserResource(object):
                 raise_invalid(self.request, **error_details)
 
             # Since id and last_modified are part of the synchronisation
-            # protocol, force their presence in payloads.
+            # API, force their presence in payloads.
             fields = fields + [self.model.id_field, self.model.modified_field]
 
         return fields
@@ -944,7 +920,7 @@ class UserResource(object):
                 )
                 continue
 
-            m = re.match(r'^(min|max|not|lt|gt|in|exclude)_(\w+)$', param)
+            m = re.match(r'^(min|max|not|lt|gt|in|exclude)_([\w\.]+)$', param)
             if m:
                 keyword, field = m.groups()
                 operator = getattr(COMPARISON, keyword.upper())
@@ -982,7 +958,7 @@ class UserResource(object):
         modified_field_used = self.model.modified_field in specified
         for field in specified:
             field = field.strip()
-            m = re.match(r'^([\-+]?)(\w+)$', field)
+            m = re.match(r'^([\-+]?)([\w\.]+)$', field)
             if m:
                 order, field = m.groups()
 
@@ -1115,7 +1091,8 @@ class ShareableResource(UserResource):
                 self.request)
 
     def get_parent_id(self, request):
-        """Unlike :class:`BaseResource`, records are not isolated by user.
+        """Unlike :class:`kinto.core.resource.UserResource`, records are not
+        isolated by user.
 
         See https://github.com/mozilla-services/cliquet/issues/549
 
@@ -1169,7 +1146,7 @@ class ShareableResource(UserResource):
     def postprocess(self, result, action=ACTIONS.READ, old=None):
         """Add ``permissions`` attribute in response body.
 
-        In the protocol, it was decided that ``permissions`` would reside
+        In the HTTP API, it was decided that ``permissions`` would reside
         outside the ``data`` attribute.
         """
         body = {}

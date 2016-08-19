@@ -24,6 +24,11 @@ class _ResourceEvent(object):
         self.payload = payload
         self.request = request
 
+    def __repr__(self):
+        return "<{klass} action={action} uri={uri}>".format(
+            klass=self.__class__.__name__,
+            **self.payload)
+
 
 class ResourceRead(_ResourceEvent):
     """Triggered when a resource is being read.
@@ -118,7 +123,8 @@ def get_resource_events(request, after_commit=False):
     return events
 
 
-def notify_resource_event(request, timestamp, data, action, old=None):
+def notify_resource_event(request, parent_id, timestamp, data, action,
+                          old=None):
     """
     Request helper to stack a resource event.
 
@@ -134,17 +140,21 @@ def notify_resource_event(request, timestamp, data, action, old=None):
         impacted = [{'new': data}]
     elif action == ACTIONS.DELETE:
         if not isinstance(data, list):
-            data = [data]
-        impacted = [{'old': r} for r in data]
+            impacted = [{'new': data, 'old': old}]
+        else:
+            impacted = []
+            for i, new in enumerate(data):
+                impacted.append({'new': new, 'old': old[i]})
     elif action == ACTIONS.UPDATE:
         impacted = [{'new': data, 'old': old}]
 
     # Get previously triggered events.
     events = request.bound_data.setdefault("resource_events", OrderedDict())
+
     resource_name = request.current_resource_name
 
     # Group events by resource and action.
-    group_by = resource_name + action.value
+    group_by = resource_name + parent_id + action.value
 
     if group_by in events:
         # Add to impacted records of existing event.

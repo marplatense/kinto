@@ -4,8 +4,8 @@
 Error responses
 ###############
 
-Protocol description
-====================
+API description
+===============
 
 Every response is JSON.
 
@@ -31,7 +31,7 @@ If the HTTP status is not OK (<200 or >=400), the response contains a JSON mappi
     }
 
 
-Refer yourself to the ref:`set of errors codes <errors>`.
+Refer yourself to the :ref:`set of errors codes <errors>`.
 
 
 Retry-After indicators
@@ -45,6 +45,7 @@ again.
 
     Retry-After: 30
 
+.. _error-responses-precondition:
 
 Precondition errors
 ===================
@@ -52,7 +53,7 @@ Precondition errors
 As detailed in the :ref:`timestamps  <server-timestamps>` section, it is
 possible to add concurrency control using ``ETag`` request headers.
 
-When a concurrency error occurs, a ``412 Precondition Failed`` error response
+When a concurrency error occurs, a |status-412| error response
 is returned.
 
 Additional information about the record currently stored on the server will be
@@ -72,34 +73,6 @@ provided in the ``details`` field:
                 "title": "Original title"
             }
         },
-    }
-
-
-Conflict errors
-===============
-
-When a record violates unicity constraints, a ``409 Conflict`` error response
-is returned.
-
-Additional information about conflicting record and field name will be
-provided in the ``details`` field.
-
-::
-
-    {
-        "code": 409,
-        "errno": 122,
-        "error": "Conflict",
-        "message": "Conflict of field url on record eyjafjallajokull"
-        "info": "https://server/docs/api.html#errors",
-        "details": {
-            "field": "url",
-            "record": {
-                "id": "eyjafjallajokull",
-                "last_modified": 1430140411480,
-                "url": "http://mozilla.org"
-            }
-        }
     }
 
 

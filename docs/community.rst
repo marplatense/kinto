@@ -68,11 +68,15 @@ official docs, in docstrings, or even on the Web in blog posts,
 articles, and such.
 
 This official documentation is maintained in `Github
-<https://github.com/Kinto/kinto/>`_, in the ``docs`` directory. Just
-run ``make docs`` from the project root to convert the RST source
-files into HTML output (in the ``docs/_build/html`` directory). We
-accept pull requests for this documentation, just as we accept them
-for bug fixes and features!
+<https://github.com/Kinto/kinto/>`_. The ``docs`` folder contains the documentation sources in `reStructuredText <https://en.wikipedia.org/wiki/ReStructuredText>`_ format. And you can generate the docs locally with::
+
+    make docs
+
+Output is written at ``docs/_build/html/index.html``.
+
+We obviously accept pull requests for this documentation, just as we accept them
+for bug fixes and features! See :github:`open issues <Kinto/kinto/labels/documentation>`.
+
 
 Submit feedback
 ---------------
@@ -179,17 +183,24 @@ From the :file:`loadtests` folder:
 
 ::
 
+    cd loadtests/
+
     make test SERVER_URL=http://localhost:8888
 
 
-Run a particular type of action instead of random:
+Use presets to run a particular limited set of operations
+(``random``, ``exhaustive``, ``read`` or ``write``):
 
 ::
 
-    LOAD_ACTION=batch_create make test SERVER_URL=http://localhost:8888
+    LOAD_PRESET=random make test SERVER_URL=http://localhost:8888
 
-(*See loadtests source code for an exhaustive list of available actions and
-their respective randomness.*)
+
+To run the load tests on the ``default`` bucket:
+
+::
+
+    BUCKET=default make test SERVER_URL=http://localhost:8888
 
 
 Cleaning your environment
@@ -231,6 +242,7 @@ Step 1
 - Merge remaining pull requests
 - Update ``CHANGELOG.rst``
 - If API was updated, update API changelog in :file:`docs/api/index.rst`
+- Make sure ``HTTP_API_VERSION`` is up-to-date in kinto/__init__.py``
 - Update the link in :file:`docs/configuration/production.rst`
 - Update :file:`CONTRIBUTORS.rst`. The following hairy command will output the full list:
 
@@ -273,7 +285,17 @@ As a final step:
 - Close the milestone in Github
 - Create next milestone in Github in the case of a major release
 - Add entry in Github release page
-- Configure the version in ReadTheDocs
+- Check that the version in ReadTheDocs is up-to-date
+- Check that a Docker image was built
 - Send mail to ML (If major release)
+- Tweet about it!
+
+Upgrade:
+
+- Deploy new version on demo server
+- Upgrade dependency in ``kinto-dist`` repo
+- Upgrade version targetted in ``kinto-heroku`` repo
+- Upgrade version of Kinto server for the tests of clients and plugins repos
+  (*kinto-http.js, kinto-http.py, kinto-attachment, etc.*)
 
 That's all folks!

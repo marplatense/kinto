@@ -1,10 +1,96 @@
 Changelog
-#########
+=========
 
 This document describes changes between each past release.
 
-3.3.0 (unreleased)
-==================
+4.1.0 (unreleased)
+------------------
+
+**Internal changes**
+
+- Fix documentation of errors codes (fixes #766)
+- A lot of tests clean-up. The ``tests`` are now outside the ``kinto`` package
+  folder and a ``kinto.core.testing`` module was introduced for tests helpers
+  (fixes #605)
+- In documentation, link the notion of principals to the permissions page instead
+  of glossary
+
+
+4.0.0 (2016-08-17)
+------------------
+
+**Breaking changes**
+
+- ``kinto --version`` was renamed ``kinto version``
+- ``ResourceChanged`` and ``AfterResourceChanged`` events now return
+  ``old`` and ``new`` records for the ``delete`` action. (#751)
+- Redis backends are not part of the core anymore. (#712).
+  Use ``kinto_redis.cache`` instead of ``kinto.core.cache.redis``
+  Use ``kinto_redis.storage`` instead of ``kinto.core.storage.redis``
+  Use ``kinto_redis.permission`` instead of ``kinto.core.permission.redis``
+- Redis listener is not part of the core anymore. (#712)
+  Use ``kinto.event_listeners.redis.use = kinto_redis.listeners`` instead of
+  ``kinto.event_listeners.redis.use = kinto.core.listeners.redis``
+- Notion of unique fields was dropped from ``kinto.core`` resources.
+
+**Protocol**
+
+- Added a ``/__version__`` endpoint with the version that has been deployed. (#747)
+- Allow sub-object filtering on plural endpoints (e.g ``?person.name=Eliot``) (#345)
+- Allow sub-object sorting on plural endpoints (e.g ``?_sort=person.name``) (#345)
+
+Protocol is now at version **1.9**. See `API changelog`_.
+
+**New features**
+
+- Added a new built-in plugin ``kinto.plugins.history`` that keeps track of every action
+  that occured within a bucket and serves a stream of changes that can be synced.
+  See `API documentation <https://kinto.readthedocs.io/en/latest/api/1.x/history.html>`_.
+- Added a new ``--dry-run`` option to command-line script ``migrate`` that will simulate
+  migration operation without executing on the backend (thanks @lavish205! #685)
+- Added ability to plug custom StatsD backend implementations via a new ``kinto.statsd_backend``
+  setting. Useful for Datadog™ integration for example (fixes #626).
+- Added a ``delete-collection`` action to the ``kinto`` command. (#727)
+- Added verbosity options to the ``kinto`` command. (#745)
+- Added a built-in plugin that allows to define quotas per bucket or collection. (#752)
+
+**Bug fixes**
+
+- Fix bug where the resource events of a request targetting two groups/collection
+  from different buckets would be grouped together.
+- Fix crash when an invalid UTF-8 character is provided in URL
+- Fix crash when provided ``last_modified`` field is not divisible (e.g. string)
+
+**Internal changes**
+
+- Huge rework of documentation after the merge of *Cliquet* into kinto.core (#731)
+- Improve the documentation about generating docs (fixes #615)
+- Switch from cliquet-pusher to kinto-pusher in Dockerfile and tutorial.
+- List posssible response status on every endpoint documentation (#736)
+- Remove duplicated and confusing docs about generic resources
+- Replace the term ``protocol`` by ``API`` in documentation (fixes #664)
+- Add load tests presets (exhaustive, read, write) in addition to the existing random. Switched integration test ``make loadtest-check-simulation`` to run the exhaustive one (fixes #258)
+- Remove former Cliquet load tests (#733)
+- Add a flag to to run simulation load tests on ``default`` bucket. Uses ``blog``
+  bucket by default (#733)
+- Add command-line documentation (#727)
+- The ``--backend`` command-line option for ``kinto init`` is not accepted as first
+  parameter anymore
+- Improved parts of the FAQ (#744)
+- Improve 404 and 403 error handling to make them customizable. (#748)
+- ``kinto.core`` resources are now schemaless by default (fixes #719)
+
+
+3.3.1 (2016-07-19)
+------------------
+
+**Protocol**
+
+- Add the ``permissions_endpoint`` capability when the ``kinto.experimental_permissions_endpoint`` is set. (#722)
+
+
+3.3.0 (2016-07-18)
+------------------
 
 **Protocol**
 
@@ -12,7 +98,7 @@ This document describes changes between each past release.
   granted on every kind of object (#600).
   Requires setting ``kinto.experimental_permissions_endpoint`` to be set to ``true``.
 
-Protocol is now at version **1.8**. See `API changelog <http://kinto.readthedocs.io/en/latest/api/>`_.
+Protocol is now at version **1.8**. See `API changelog`_.
 
 **Bug fixes**
 
@@ -23,6 +109,9 @@ Protocol is now at version **1.8**. See `API changelog <http://kinto.readthedocs
   the records endpoint of an unknown collection (fixes #693, related #558)
 - Fix events payloads for actions in the default bucket (fixes #704)
 - Fix bug in object permissions with memory backend
+- Make sure the tombstone is deleted when the record is created with PUT. (#715)
+- Allow filtering and sorting by any attribute on buckets, collections and groups list endpoints
+- Fix crash in memory backend with Python3 when filtering on unknown field
 
 **Internal changes**
 
@@ -31,16 +120,27 @@ Protocol is now at version **1.8**. See `API changelog <http://kinto.readthedocs
 - Fix crash when a resource is registered without record path.
 - Changed behaviour of accessible objects in permissions backend when list of
   bound permissions is empty.
+- Bump ``last_modified`` on record when provided value is equal to previous
+  in storage ``update()`` method (#713)
+- Add ability to delete records and purge tombstones with just the ``parent_id``
+  parameter (#711)
+- Buckets deletion is now a lot more efficient, since every sub-objects are
+  deleted with a single operation on storage backend (#711)
+- Added ``get_objects_permissions()`` method in ``permission`` backend (#714)
+- Changed ``get_accessible_objects()``, ``get_authorized_principals()`` methods
+  in ``permission`` backend (#714)
+- Simplified and improved the code quality of ``kinto.core.authorization``,
+  mainly by keeping usage of ``get_bound_permissions`` callback in one place only.
 
 
 3.2.0 (2016-06-14)
-==================
+------------------
 
 **Protocol**
 
 - Allow record IDs to be any string instead of just UUIDs (fixes #655).
 
-Protocol is now at version **1.7**. See `API changelog <https://kinto.readthedocs.io/en/latest/api/>`_.
+Protocol is now at version **1.7**. See `API changelog`_.
 
 **New features**
 
@@ -77,13 +177,13 @@ Protocol is now at version **1.7**. See `API changelog <https://kinto.readthedoc
 
 
 3.1.0 (2016-05-24)
-==================
+------------------
 
 **Protocol**
 
 - Added the ``GET /contribute.json`` endpoint for open-source information (fixes #607)
 
-Protocol is now at version **1.6**. See `API changelog <https://kinto.readthedocs.io/en/latest/api/>`_.
+Protocol is now at version **1.6**. See `API changelog`_.
 
 
 **Bug fixes**
@@ -105,7 +205,7 @@ Protocol is now at version **1.6**. See `API changelog <https://kinto.readthedoc
 
 
 3.0.1 (2016-05-20)
-==================
+------------------
 
 **Bug fixes**
 
@@ -114,7 +214,7 @@ Protocol is now at version **1.6**. See `API changelog <https://kinto.readthedoc
 
 
 3.0.0 (2016-05-18)
-==================
+------------------
 
 - Major version update. Merged cliquet into kinto.core. This is
   intended to simplify the experience of people who are new to Kinto.
@@ -147,7 +247,7 @@ Protocol is now at version **1.6**. See `API changelog <https://kinto.readthedoc
 
 
 2.1.1 (2016-04-29)
-==================
+------------------
 
 **Bug fixes**
 
@@ -166,7 +266,7 @@ Protocol is now at version **1.6**. See `API changelog <https://kinto.readthedoc
 
 
 2.1.0 (2016-04-19)
-==================
+------------------
 
 **Bug fixes**
 
@@ -192,11 +292,11 @@ Protocol is now at version **1.6**. See `API changelog <https://kinto.readthedoc
 - Document how to configure the postgresql backend (#533)
 - Document how to upgrade Kinto (#537, #538)
 
-Protocol is now in version **1.5**. See `API changelog <https://kinto.readthedocs.io/en/latest/api/>`_.
+Protocol is now in version **1.5**. See `API changelog`_.
 
 
 2.0.0 (2016-03-08)
-==================
+------------------
 
 **Protocol**
 
@@ -215,7 +315,7 @@ Protocol is now in version **1.5**. See `API changelog <https://kinto.readthedoc
 - Add the ``flush_endpoint``, ``schema`` and ``default_bucket`` to the capabilities
   if enabled in settings (#270)
 
-Protocol is now in version **1.4**. See `API changelog <https://kinto.readthedocs.io/en/latest/api/>`_.
+Protocol is now in version **1.4**. See `API changelog`_.
 
 **Breaking changes**
 
@@ -294,7 +394,7 @@ Protocol is now in version **1.4**. See `API changelog <https://kinto.readthedoc
 
 
 1.11.2 (2016-02-03)
-===================
+------------------=
 
 **Bug fixes**
 
@@ -308,7 +408,7 @@ Protocol is now in version **1.4**. See `API changelog <https://kinto.readthedoc
 
 
 1.11.1 (2016-02-01)
-===================
+------------------=
 
 **Bug fixes**
 
@@ -322,7 +422,7 @@ Protocol is now in version **1.4**. See `API changelog <https://kinto.readthedoc
 
 
 1.11.0 (2016-01-28)
-===================
+------------------=
 
 **Protocol**
 
@@ -333,7 +433,7 @@ Protocol is now in version **1.4**. See `API changelog <https://kinto.readthedoc
   root URL (#628). Clients can rely on this to detect optional features on the
   server (e.g. enabled plugins)
 
-Protocol is now version 1.3. See `API changelog <https://kinto.readthedocs.io/en/latest/api/>`_.
+Protocol is now version 1.3. See `API changelog`_.
 
 **New features**
 
@@ -400,7 +500,7 @@ Minor:
 
 
 1.10.1 (2015-12-11)
-===================
+------------------=
 
 **Bug fixes**
 
@@ -413,7 +513,7 @@ Minor:
 
 
 1.10.0 (2015-12-01)
-===================
+------------------=
 
 **Breaking changes**
 
@@ -453,7 +553,7 @@ Changed the naming in the root URL (hello view) (mozilla-services/cliquet#600)
 - Clarified how Kinto is versionned in the documentation (#305)
 
 1.9.0 (2015-11-18)
-==================
+------------------
 
 - Upgraded to *Cliquet* 2.11.0
 
@@ -509,7 +609,7 @@ See also `*Cliquet* changes <https://github.com/mozilla-services/cliquet/release
 
 
 1.8.0 (2015-10-30)
-==================
+------------------
 
 - Upgraded to *Cliquet* 2.10.0
 
@@ -543,7 +643,7 @@ See also `*Cliquet* changes <https://github.com/mozilla-services/cliquet/release
 
 
 1.7.0 (2015-10-28)
-==================
+------------------
 
 - Upgraded to *Cliquet* 2.9.0
 - Update cliquet-fxa configuration example for cliquet-fxa 1.4.0
@@ -563,7 +663,7 @@ See also `*Cliquet* changes <https://github.com/mozilla-services/cliquet/release
 `Please read the full Cliquet 2.9.0 changelog for more information <https://github.com/mozilla-services/cliquet/releases/tag/2.9.0>`_
 
 1.6.2 (2015-10-22)
-==================
+------------------
 
 **Bug fixes**
 
@@ -571,7 +671,7 @@ See also `*Cliquet* changes <https://github.com/mozilla-services/cliquet/release
 
 
 1.6.1 (2015-10-22)
-==================
+------------------
 
 - Upgraded to *Cliquet* 2.8.2
 
@@ -588,7 +688,7 @@ See also `*Cliquet* changes <https://github.com/mozilla-services/cliquet/release
 
 
 1.6.0 (2015-10-14)
-==================
+------------------
 
 - Upgraded to *Cliquet* 2.8.1
 
@@ -601,13 +701,13 @@ See also `*Cliquet* changes <https://github.com/mozilla-services/cliquet/release
 
 
 1.5.1 (2015-10-07)
-==================
+------------------
 
 - Upgraded to *Cliquet* 2.7.0
 
 
 1.5.0 (2015-09-23)
-==================
+------------------
 
 - Add Disqus comments to documentation (fixes #159)
 
@@ -628,7 +728,7 @@ See also `*Cliquet* changes <https://github.com/mozilla-services/cliquet/release
 
 
 1.4.0 (2015-09-04)
-==================
+------------------
 
 **New features**
 
@@ -665,7 +765,7 @@ See also `*Cliquet* changes <https://github.com/mozilla-services/cliquet/release
 
 
 1.3.1 (2015-07-15)
-==================
+------------------
 
 - Upgraded to *Cliquet* 2.3.1
 
@@ -676,7 +776,7 @@ See also `*Cliquet* changes <https://github.com/mozilla-services/cliquet/release
 
 
 1.3.0 (2015-07-13)
-==================
+------------------
 
 - Upgraded to *Cliquet* 2.3.0
 
@@ -692,7 +792,7 @@ See also `*Cliquet* changes <https://github.com/mozilla-services/cliquet/release
 
 
 1.2.1 (2015-07-08)
-==================
+------------------
 
 - Upgraded to *Cliquet* 2.2.1
 
@@ -710,7 +810,7 @@ See also `*Cliquet* changes <https://github.com/mozilla-services/cliquet/release
 
 
 1.2.0 (2015-07-03)
-==================
+------------------
 
 - Upgraded to *Cliquet* 2.2.+
 
@@ -740,7 +840,7 @@ See also `*Cliquet* changes <https://github.com/mozilla-services/cliquet/release
 
 
 1.1.0 (2015-06-29)
-==================
+------------------
 
 **New features**
 
@@ -760,7 +860,7 @@ See also `*Cliquet* changes <https://github.com/mozilla-services/cliquet/release
 
 
 1.0.0 (2015-06-17)
-==================
+------------------
 
 **New features**
 
@@ -799,7 +899,7 @@ Settings
 
 
 0.2.2 (2015-06-04)
-==================
+------------------
 
 - Upgraded to *cliquet* 1.8.+
 
@@ -820,7 +920,7 @@ Settings
 
 
 0.2.1 (2015-03-25)
-==================
+------------------
 
 - Upgraded to *cliquet* 1.4.1
 
@@ -830,7 +930,7 @@ Settings
 
 
 0.2 (2015-03-24)
-================
+----------------
 
 - Upgraded to *cliquet* 1.4
 
@@ -848,10 +948,13 @@ Settings
 
 
 0.1 (2015-03-20)
-================
+----------------
 
 **Initial version**
 
 - Schemaless storage of records
 - Firefox Account authentication
 - Kinto as a storage backend for *cliquet* applications
+
+
+.. _API changelog: https://kinto.readthedocs.io/en/latest/api/

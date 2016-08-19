@@ -69,6 +69,7 @@ DEFAULT_SETTINGS = {
     'project_version': '',
     'readonly': False,
     'retry_after_seconds': 30,
+    'statsd_backend': 'kinto.core.statsd',
     'statsd_prefix': 'kinto.core',
     'statsd_url': None,
     'storage_backend': '',
@@ -172,5 +173,5 @@ def includeme(config):
     config.scan("kinto.core.views")
 
     # Give sign of life.
-    msg = "%(project_name)s %(project_version)s starting."
+    msg = "Running %(project_name)s %(project_version)s."
     logger.info(msg % settings)

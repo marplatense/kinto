@@ -2,12 +2,14 @@ Contributors
 ============
 
 * Aaron Egaas <me@aaronegaas.com>
+* Adam Chainz <adam@adamj.eu>
 * Aditya Bhasin <conlini@gmail.com>
 * Alexis Metaireau <alexis@mozilla.com>
 * Andy McKay <amckay@mozilla.com>
 * Aymeric Faivre <miho@miho-stories.com>
 * Ayush Sharma <ayush.aceit@gmail.com>
 * Balthazar Rouberol <br@imap.cc>
+* Boris Feld <lothiraldan@gmail.com>
 * Chirag B. Jadwani <chirag.jadwani@gmail.com>
 * Clément Villain <choclatefr@gmail.com>
 * Dan Phrawzty <phrawzty+github@gmail.com>
@@ -28,7 +30,7 @@ Contributors
 * Masataka Takeuchi <masataka.takeuchi@l-is-b.com>
 * Mathieu Agopian <mathieu@agopian.info>
 * Mathieu Leplatre <mathieu@mozilla.com>
-* Maxime Varnier <marmax@gmail.com>
+* Maxime Warnier <marmax@gmail.com>
 * Michiel de Jong <michiel@unhosted.org>
 * Nicolas Hoizey <nicolas@hoizey.com>
 * Nicolas Perriault <nperriault@mozilla.com>

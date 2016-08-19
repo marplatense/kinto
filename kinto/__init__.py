@@ -8,11 +8,12 @@ from pyramid.security import Authenticated
 
 from kinto.authorization import RouteFactory
 
+
 # Module version, as defined in PEP-0396.
 __version__ = pkg_resources.get_distribution(__package__).version
 
 # Implemented HTTP API Version
-HTTP_API_VERSION = '1.8'
+HTTP_API_VERSION = '1.9'
 
 # Main kinto logger
 logger = logging.getLogger(__name__)
@@ -80,7 +81,14 @@ def main(global_config, config=None, **settings):
     permissions_endpoint_enabled = (
         asbool(settings['experimental_permissions_endpoint']) and
         hasattr(config.registry, 'permission'))
-    if not permissions_endpoint_enabled:
+    if permissions_endpoint_enabled:
+        config.add_api_capability(
+            "permissions_endpoint",
+            description="The permissions endpoint can be used to list all "
+                        "user objects permissions.",
+            url="https://kinto.readthedocs.io/en/latest/configuration/"
+                "settings.html#activating-the-permissions-endpoint")
+    else:
         kwargs.setdefault('ignore', []).append('kinto.views.permissions')
 
     config.scan("kinto.views", **kwargs)

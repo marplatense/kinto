@@ -9,15 +9,11 @@ class GroupSchema(resource.ResourceSchema):
     members = colander.SchemaNode(colander.Sequence(),
                                   colander.SchemaNode(colander.String()))
 
-    class Options:
-        preserve_unknown = True
-
 
 @resource.register(name='group',
                    collection_path='/buckets/{{bucket_id}}/groups',
                    record_path='/buckets/{{bucket_id}}/groups/{{id}}')
 class Group(resource.ShareableResource):
-
     mapping = GroupSchema()
 
     def get_parent_id(self, request):

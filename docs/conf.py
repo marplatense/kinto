@@ -30,7 +30,7 @@ if not on_rtd:  # only import and set the theme if we're building docs locally
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
-sys.path.insert(0, os.path.abspath(os.path.join('..', 'kinto')))
+sys.path.insert(0, os.path.abspath(os.path.join('..')))
 
 # -- General configuration ------------------------------------------------
 
@@ -72,9 +72,9 @@ copyright = u'2015-2016 — Mozilla Services'
 # built documents.
 #
 # The short X.Y version.
-version = '3.2'
+version = '4.0'
 # The full version, including alpha/beta/rc tags.
-release = '3.2.0'
+release = '4.0.0'
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
@@ -95,6 +95,29 @@ htmlhelp_basename = 'Kintodoc'
 # -- Options for autodoc --------------------------------------------------
 
 autodoc_member_order = 'bysource'
+# Enable nitpicky mode - which ensures that all references in the docs
+# resolve.
+nitpicky = True
+nitpick_ignore = [
+    ('py:obj', 'bool'),
+    ('py:obj', 'Exception'),
+    ('py:obj', 'int'),
+    ('py:obj', 'str'),
+    ('py:obj', 'dict'),
+    ('py:obj', 'list'),
+    ('py:obj', 'tuple'),
+    ('py:obj', 'float'),
+    ('py:obj', 'cornice.Service'),
+    # Member autodoc fails with those:
+    # kinto.core.resource.schema
+    ('py:class', 'Integer'),
+    ('py:class', 'String'),
+    # kinto.core.resource
+    ('py:class', 'ViewSet'),
+    ('py:class', 'ShareableViewSet'),
+    ('py:class', 'Model'),
+    ('py:class', 'ShareableModel'),
+]
 
 
 # -- Options of extlinks --------------------------------------------------
@@ -105,6 +128,27 @@ extlinks = {
     'blog': ('http://www.servicedenuages.fr/%s', '')
 }
 
+
+# -- Substitutions
+
+rst_epilog = """
+.. |status-200| replace:: ``200 OK``
+.. |status-201| replace:: ``201 Created``
+.. |status-304| replace:: ``304 Not Modified``
+.. |status-400| replace:: ``400 Bad Request``
+.. |status-401| replace:: ``401 Unauthorized``
+.. |status-403| replace:: ``401 Forbidden``
+.. |status-404| replace:: ``404 Not Found``
+.. |status-405| replace:: ``405 Method Not Allowed``
+.. |status-406| replace:: ``406 Not Acceptable``
+.. |status-409| replace:: ``409 Conflict``
+.. |status-410| replace:: ``410 Gone``
+.. |status-412| replace:: ``412 Precondition Failed``
+.. |status-415| replace:: ``415 Unsupported Media Type``
+.. |status-503| replace:: ``503 Service Unavailable``
+"""
+
+# --
 
 def setup(app):
     # path relative to _static

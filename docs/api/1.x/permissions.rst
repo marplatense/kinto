@@ -81,6 +81,7 @@ grant the `write` permission to their creator.
   There is no ``delete`` permission. Anyone with the ``write`` permission on an
   object can delete it.
 
+.. _api-principals:
 
 Principals
 ==========
@@ -90,6 +91,7 @@ authenticated *user* will be bound to to the request.
 
 The main principal is considered the **user ID** and follows this formalism:
 ``{type}:{identifier}`` (e.g. for Firefox Account: ``fxa:32aa95a474c984d41d395e2d0b614aa2``).
+When a users are added to :ref:`a group <groups>`, they receive a principal.
 
 There are two special principals:
 
@@ -97,20 +99,29 @@ There are two special principals:
 - ``system.Everyone``: Anyone (authenticated or anonymous). Using this
   principal is useful when a rule should apply to all users.
 
+Those principals are used in the permissions definitions. For example, to give
+the permission to read for everyone and to write for the *friends* group, the
+definition is ``read: ["system.Everyone"], write: ["/buckets/pictures/groups/friends"]``.
+
 .. note::
 
-    A user can also be another application (in order to provide *service to
+    A principal can also be another application (in order to provide *service to
     service* authentication).
+
+.. _api-current-userid:
 
 Get the current user ID
 -----------------------
 
 The currently authenticated *user ID* can be obtained on the root URL.
 
-.. code-block:: http
-    :emphasize-lines: 17
+.. code-block:: bash
 
     $ http GET http://localhost:8888/v1/ --auth token:my-secret
+
+.. code-block:: http
+    :emphasize-lines: 16
+
     HTTP/1.1 200 OK
     Access-Control-Expose-Headers: Backoff, Retry-After, Alert, Content-Length
     Content-Length: 288
@@ -138,6 +149,41 @@ In this case the user ID is: ``basicauth:631c2d625ee5726172cf67c6750de10a3e1a04b
 
     If Alice wants to share objects with Bob, Bob will need to give Alice his
     user ID - this is an easy way to obtain that ID.
+
+
+.. _api-permissions-payload:
+
+Permissions request payload
+===========================
+
+In the JSON requests payloads, the ``permissions`` attribute comes along the ``data`` attribute. Permissions can be replaced or modified independently from data.
+
+``permissions`` is a JSON dict with the following structure::
+
+    "permissions": {<permission>: [<list_of_principals>]}
+
+Where ``<permission>`` is the permission name (e.g. ``read``, ``write``)
+and ``<list_of_principals>`` should be replaced by an actual list of
+:term:`principals`.
+
+Example:
+
+::
+
+    {
+        "data": {
+            "title": "No Backend"
+        },
+        "permissions": {
+            "write": ["twitter:leplatrem", "group:ldap:42"],
+            "read": ["system.Authenticated"]
+        }
+    }
+
+.. note::
+
+    When an object is created or modified, the current :term:`user id`
+    **is always added** among the ``write`` principals.
 
 
 Retrieve objects permissions

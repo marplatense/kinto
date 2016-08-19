@@ -29,9 +29,6 @@ class CollectionSchema(resource.ResourceSchema):
     schema = JSONSchemaMapping(missing=colander.drop)
     cache_expires = colander.SchemaNode(colander.Int(), missing=colander.drop)
 
-    class Options:
-        preserve_unknown = True
-
 
 @resource.register(name='collection',
                    collection_path='/buckets/{{bucket_id}}/collections',

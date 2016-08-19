@@ -19,14 +19,8 @@ class ResourceSchema(colander.MappingSchema):
                 reference = colander.SchemaNode(colander.String())
 
                 class Options:
-                    unique_fields = ('reference',)
+                    readonly_fields = ('reference',)
         """
-        unique_fields = tuple()
-        """Fields that must have unique values for the user collection.
-        During records creation and modification, a conflict error will be
-        raised if unicity is about to be violated.
-        """
-
         readonly_fields = tuple()
         """Fields that cannot be updated. Values for fields will have to be
         provided either during record creation, through default values using
@@ -34,19 +28,14 @@ class ResourceSchema(colander.MappingSchema):
         :meth:`kinto.core.resource.UserResource.process_record`.
         """
 
-        preserve_unknown = False
+        preserve_unknown = True
         """Define if unknown fields should be preserved or not.
 
-        For example, in order to define a schema-less resource, in other words
-        a resource that will accept any form of record, the following schema
-        definition is enough:
-
-        .. code-block:: python
-
-            class SchemaLess(ResourceSchema):
-                class Options:
-                    preserve_unknown = True
+        The resource is schema-less by default. In other words, any field name
+        will be accepted on records. Set this to ``False`` in order to limit
+        the accepted fields to the ones defined in the schema.
         """
+
     def get_option(self, attr):
         default_value = getattr(ResourceSchema.Options, attr)
         return getattr(self.Options, attr,  default_value)

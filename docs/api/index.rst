@@ -11,7 +11,15 @@ API
 Changelog
 ---------
 
-1.8 (unreleased)
+1.9 (2016-08-17)
+''''''''''''''''
+
+- Add new endpoint ``GET /__version__`` to retrieve the information
+  about the deployed version.
+- Allow sub-object filtering on plural endpoints (e.g ``?person.name=Eliot``)
+- Allow sub-object sorting on plural endpoints (e.g ``?_sort=person.name``)
+
+1.8 (2016-07-19)
 ''''''''''''''''
 
 - Add new endpoint ``GET /v1/permissions`` to retrieve the list of permissions

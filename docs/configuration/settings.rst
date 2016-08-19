@@ -12,19 +12,23 @@ Kinto is built to be highly configurable. As a result, the related
 configuration can be verbose, but don't worry, all configuration flags are
 listed below.
 
-.. note::
 
-    In order to ease deployment or testing strategies, *Kinto* reads settings
-    from environment variables, in addition to ``.ini`` files.
+.. _configuration-environment:
 
-    The environment variables are exactly the same as the settings, but they
-    are capitalised and ``.`` are replaced by ``_``.
+Environment variables
+=====================
 
-    For example, ``kinto.storage_backend`` is read from environment variable
-    ``KINTO_STORAGE_BACKEND`` if defined.
+In order to ease deployment or testing strategies, *Kinto* reads settings
+from environment variables, in addition to ``.ini`` files.
 
-    All settings are read first from the environment variables, then from
-    application ``.ini``, and finally from internal defaults.
+The environment variables are exactly the same as the settings, but they
+are capitalised and ``.`` are replaced by ``_``.
+
+For example, ``kinto.storage_backend`` is read from environment variable
+``KINTO_STORAGE_BACKEND`` (if defined of course).
+
+All settings are read first from the environment variables, then from
+application ``.ini``, and finally from internal defaults.
 
 
 .. _configuration-features:
@@ -37,8 +41,7 @@ Feature settings
 +=================================================+==============+===========================================================================+
 | kinto.readonly                                  | ``False``    | If set to true, the whole service will reject every write operation.      |
 |                                                 |              | Note that with this option, the ``default`` bucket cannot be used and     |
-|                                                 |              | request will be rejected with a ``405 Method Not Allowed`` error          |
-|                                                 |              | response.                                                                 |
+|                                                 |              | request will be rejected with a |status-405| error response.              |
 +-------------------------------------------------+--------------+---------------------------------------------------------------------------+
 | kinto.batch_max_requests                        | ``25``       | The maximum number of requests that can be sent to the batch endpoint.    |
 +-------------------------------------------------+--------------+---------------------------------------------------------------------------+
@@ -59,7 +62,12 @@ Feature settings
 +-------------------------------------------------+--------------+---------------------------------------------------------------------------+
 | kinto.experimental_collection_schema_validation | ``False``    | *Experimental*: Allow definition of JSON schema at the collection level,  |
 |                                                 |              | in order to :ref:`validate submitted records <collection-json-schema>`.   |
-|                                                 |              | It is marked as experimental because the API might subjet to changes.     |
+|                                                 |              | It is marked as experimental because the API might be subject to changes. |
++-------------------------------------------------+--------------+---------------------------------------------------------------------------+
+| kinto.experimental_permissions_endpoint         | ``False``    | *Experimental*: Add a new ``/permissions`` endpoint to let the user grab  |
+|                                                 |              | the list of objects (buckets, collections, groups, records) on which they |
+|                                                 |              | have read or write permission.                                            |
+|                                                 |              | It is marked as experimental because the API might be subject to changes. |
 +-------------------------------------------------+--------------+---------------------------------------------------------------------------+
 | kinto.trailing_slash_redirect_enabled           | ``True``     | Try to redirect resources removing slash or adding it for the root URL    |
 |                                                 |              | endpoint: ``/v1`` redirects to ``/v1/`` and ``/buckets/default/``         |
@@ -67,6 +75,15 @@ Feature settings
 +-------------------------------------------------+--------------+---------------------------------------------------------------------------+
 | kinto.heartbeat_timeout_seconds                 | ``10``       | The maximum duration of each heartbeat entry, in seconds.                 |
 +-------------------------------------------------+--------------+---------------------------------------------------------------------------+
+
+.. note::
+
+    ``kinto.readonly`` will disable every endpoint that is not accessed with one of
+    ``GET``, ``OPTIONS``, or ``HEAD`` HTTP methods. Requests will receive a
+    |status-405| error response.
+
+    The cache backend will still needs read-write privileges, in order to
+    cache OAuth authentication states and tokens for example.
 
 
 .. _configuration-backends:
@@ -111,8 +128,8 @@ Storage
 
 .. code-block:: ini
 
-    kinto.storage_backend = kinto.core.storage.redis
-    kinto.storage_url = redis://localhost:6379/1
+    kinto.storage_backend = kinto.core.storage.postgresql
+    kinto.storage_url = postgres://postgres:postgres@localhost/postgres
 
     # Safety limit while fetching from storage
     # kinto.storage_max_fetch_size = 10000
@@ -150,8 +167,8 @@ Cache
 
 .. code-block:: ini
 
-    kinto.cache_backend = kinto.core.cache.redis
-    kinto.cache_url = redis://localhost:6379/0
+    kinto.cache_backend = kinto.core.cache.postgresql
+    kinto.cache_url = postgres://postgres:postgres@localhost/postgres
 
     # Control number of pooled connections
     # kinto.cache_pool_size = 50
@@ -182,8 +199,8 @@ Permissions
 
 .. code-block:: ini
 
-    kinto.permission_backend = kinto.core.permission.redis
-    kinto.permission_url = redis://localhost:6379/1
+    kinto.permission_backend = kinto.core.permission.postgresql
+    kinto.permission_url = postgres://postgres:postgres@localhost/postgres
 
     # Control number of pooled connections
     # kinto.permission_pool_size = 50
@@ -244,6 +261,9 @@ Logging and Monitoring
 +========================+========================================+==========================================================================+
 | kinto.logging_renderer | ``kinto.core.logs.ClassicLogRenderer`` | The Python *dotted* location of the renderer class that should be used   |
 |                        |                                        | to render the logs to the standard output.                               |
++------------------------+----------------------------------------+--------------------------------------------------------------------------+
+| kinto.statsd_backend   | ``kinto.core.statsd``                  | The Python **dotted** location of the StatsD module that should be used  |
+|                        |                                        | for monitoring. Useful to plug custom implementations like Datadog™.     |
 +------------------------+----------------------------------------+--------------------------------------------------------------------------+
 | kinto.statsd_prefix    | ``kinto``                              | The prefix to use when sending data to statsd.                           |
 +------------------------+----------------------------------------+--------------------------------------------------------------------------+
@@ -444,11 +464,46 @@ list of Python modules:
 .. code-block:: ini
 
     kinto.includes = kinto.plugins.default_bucket
+                     kinto.plugins.history
                      kinto-attachment
                      custom-myplugin
 
++---------------------------------------+--------------------------------------------------------------------------+
+| Built-in plugins                      | What does it do?                                                         |
++=======================================+==========================================================================+
+| ``kinto.plugins.default_bucket``      | It enables a personnal bucket ``default``, where collections are created |
+|                                       | implicitly (:ref:`more details <buckets-default-id>`).                   |
++---------------------------------------+--------------------------------------------------------------------------+
+| ``kinto.plugins.history``             | It tracks every action performed on objects within a bucket              |
+|                                       | (:ref:`more details <api-history>`).                                     |
++---------------------------------------+--------------------------------------------------------------------------+
+
+There are `many available packages`_ in Pyramid ecosystem, and it is straightforward to build one,
+since the specified module must just define an ``includeme(config)`` function.
+
+.. _many available packages: https://github.com/ITCase/awesome-pyramid
+
+See `our list of community plugins <https://github.com/Kinto/kinto/wiki/Plugins>`_.
+
 See also: :ref:`tutorial-write-plugin` for more in-depth informations on how
 to create your own plugin.
+
+
+Pluggable components
+::::::::::::::::::::
+
+:term:`Pluggable` components can be substituted from configuration files,
+as long as the replacement follows the original component API.
+
+.. code-block:: ini
+
+    kinto.logging_renderer = your_log_renderer.CustomRenderer
+
+This is the simplest way to extend *Kinto*, but will be limited to its
+existing components (cache, storage, log renderer, ...).
+
+In order to add extra features, including external packages is the way to go!
+
 
 .. _configuring-notifications:
 
@@ -465,7 +520,7 @@ data in the ``queue`` Redis list.
 
     kinto.event_listeners = redis
 
-    kinto.event_listeners.redis.use = kinto.core.listeners.redis
+    kinto.event_listeners.redis.use = kinto_redis.listeners
     kinto.event_listeners.redis.url = redis://localhost:6379/0
     kinto.event_listeners.redis.pool_size = 5
     kinto.event_listeners.redis.listname = queue
@@ -489,7 +544,7 @@ Enabling push notifications to clients consists in enabling an event listener
 that will be in charge of forwarding events data to remote clients.
 
 A Kinto plugin was made using the *Pusher* (commercial) service.
-See :github:`leplatrem/cliquet-pusher`.
+See :ref:`tutorial-notifications-websockets`.
 
 
 Cross Origin requests (CORS)
@@ -590,8 +645,25 @@ dangerous to leave on by default, and must therefore be enabled explicitly.
 
     kinto.flush_endpoint_enabled = true
 
-Then, issue a `POST` request to the `/__flush__` endpoint to flush all
+Then, issue a ``POST`` request to the ``/__flush__`` endpoint to flush all
 the data.
+
+
+Activating the permissions endpoint
+===================================
+
+
+The Permissions endpoint is used to get a list of all user accessible
+objects in the server as well as their permissions. It enables
+applications such as the kinto-admin to discover what the user is
+allowed to do and which data can be managed.
+
+.. code-block :: ini
+
+    kinto.permissions_endpoint_enabled = true
+
+Then, issue a ``GET`` request to the ``/permissions`` endpoint to get the
+list of the user permissions on the server ressources.
 
 
 .. _configuration-client-caching:
@@ -656,3 +728,36 @@ Example:
 
     kinto.project_docs = https://project.readthedocs.io/
     # kinto.project_version = 1.0
+
+
+Application profiling
+=====================
+
+It is possible to profile the stack while its running. This is especially
+useful when trying to find bottlenecks.
+
+Update the configuration file with the following values:
+
+.. code-block:: ini
+
+    kinto.profiler_enabled = true
+    kinto.profiler_dir = /tmp/profiling
+
+Run a load test (*for example*):
+
+::
+
+    cd loadtests/
+    SERVER_URL=http://localhost:8888 make bench -e
+
+
+Render execution graphs using GraphViz:
+
+::
+
+    sudo apt-get install graphviz
+
+::
+
+    pip install gprof2dot
+    gprof2dot -f pstats POST.v1.batch.000176ms.1427458675.prof | dot -Tpng -o output.png

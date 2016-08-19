@@ -37,11 +37,13 @@ class StorageBase(object):
 
     id_generator = generators.UUID4()
 
-    def initialize_schema(self):
+    def initialize_schema(self, dry_run=False):
         """Create every necessary objects (like tables or indices) in the
         backend.
 
         This is executed when the ``kinto migrate`` command is run.
+
+        :param bool dry_run: simulate instead of executing the operations.
         """
         raise NotImplementedError
 
@@ -67,12 +69,12 @@ class StorageBase(object):
         raise NotImplementedError
 
     def create(self, collection_id, parent_id, record, id_generator=None,
-               unique_fields=None, id_field=DEFAULT_ID_FIELD,
+               id_field=DEFAULT_ID_FIELD,
                modified_field=DEFAULT_MODIFIED_FIELD,
                auth=None):
         """Create the specified `object` in this `collection_id` for this `parent_id`.
         Assign the id to the object, using the attribute
-        :attr:`kinto.core.resource.Model.id_field`.
+        :attr:`kinto.core.resource.model.Model.id_field`.
 
         .. note::
 
@@ -82,8 +84,7 @@ class StorageBase(object):
 
         :param str collection_id: the collection id.
         :param str parent_id: the collection parent.
-
-        :param dict object: the object to create.
+        :param dict record: the object to create.
 
         :returns: the newly created object.
         :rtype: dict
@@ -110,7 +111,7 @@ class StorageBase(object):
         raise NotImplementedError
 
     def update(self, collection_id, parent_id, object_id, record,
-               unique_fields=None, id_field=DEFAULT_ID_FIELD,
+               id_field=DEFAULT_ID_FIELD,
                modified_field=DEFAULT_MODIFIED_FIELD,
                auth=None):
         """Overwrite the `object` with the specified `object_id`.
@@ -122,13 +123,10 @@ class StorageBase(object):
 
             This will update the collection timestamp.
 
-        :raises: :exc:`kinto.core.storage.exceptions.UnicityError`
-
         :param str collection_id: the collection id.
         :param str parent_id: the collection parent.
-
         :param str object_id: unique identifier of the object
-        :param dict object: the object to update or create.
+        :param dict record: the object to update or create.
 
         :returns: the updated object.
         :rtype: dict
@@ -179,7 +177,7 @@ class StorageBase(object):
         :param bool with_deleted: track deleted records with a tombstone
 
         :returns: the list of deleted objects, with minimal set of attributes.
-        :rtype: list of dict
+        :rtype: list
         """
         raise NotImplementedError
 
@@ -239,7 +237,7 @@ class StorageBase(object):
 
         :returns: the limited list of objects, and the total number of
             matching objects in the collection (deleted ones excluded).
-        :rtype: tuple (list, integer)
+        :rtype: tuple
         """
         raise NotImplementedError
 

@@ -1,9 +1,10 @@
+import re
 import operator
 from collections import defaultdict
 
 from kinto.core import utils
 from kinto.core.storage import (
-    StorageBase, exceptions, Filter,
+    StorageBase, exceptions,
     DEFAULT_ID_FIELD, DEFAULT_MODIFIED_FIELD, DEFAULT_DELETED_FIELD)
 from kinto.core.utils import COMPARISON
 
@@ -19,28 +20,11 @@ class MemoryBasedStorage(StorageBase):
     def __init__(self, *args, **kwargs):
         pass
 
-    def initialize_schema(self):
+    def initialize_schema(self, dry_run=False):
         # Nothing to do.
         pass
 
-    def delete_all(self, collection_id, parent_id, filters=None,
-                   id_field=DEFAULT_ID_FIELD, with_deleted=True,
-                   modified_field=DEFAULT_MODIFIED_FIELD,
-                   deleted_field=DEFAULT_DELETED_FIELD,
-                   auth=None):
-        records, count = self.get_all(collection_id, parent_id,
-                                      filters=filters,
-                                      id_field=id_field,
-                                      modified_field=modified_field,
-                                      deleted_field=deleted_field)
-        deleted = [self.delete(collection_id, parent_id, r[id_field],
-                               id_field=id_field, with_deleted=with_deleted,
-                               modified_field=modified_field,
-                               deleted_field=deleted_field)
-                   for r in records]
-        return deleted
-
-    def strip_deleted_record(self, resource, parent_id, record,
+    def strip_deleted_record(self, collection_id, parent_id, record,
                              id_field=DEFAULT_ID_FIELD,
                              modified_field=DEFAULT_MODIFIED_FIELD,
                              deleted_field=DEFAULT_DELETED_FIELD):
@@ -50,7 +34,6 @@ class MemoryBasedStorage(StorageBase):
         deleted = {}
         deleted[id_field] = record[id_field]
         deleted[modified_field] = record[modified_field]
-
         deleted[deleted_field] = True
         return deleted
 
@@ -62,30 +45,6 @@ class MemoryBasedStorage(StorageBase):
                                          last_modified=last_modified)
         record[modified_field] = timestamp
         return record
-
-    def check_unicity(self, collection_id, parent_id, record,
-                      unique_fields, id_field, for_creation=False):
-        """Check that the specified record does not violates unicity
-        constraints defined in the resource's mapping options.
-        """
-        if for_creation and id_field in record:
-            # If id is provided by client, check that no record conflicts.
-            unique_fields = (unique_fields or tuple()) + (id_field,)
-
-        if not unique_fields:
-            return
-
-        unicity_rules = get_unicity_rules(collection_id, parent_id, record,
-                                          unique_fields=unique_fields,
-                                          id_field=id_field,
-                                          for_creation=for_creation)
-        for filters in unicity_rules:
-            existing, count = self.get_all(collection_id, parent_id,
-                                           filters=filters,
-                                           id_field=id_field)
-            if count > 0:
-                field = filters[0].field
-                raise exceptions.UnicityError(field, existing[0])
 
     def apply_filters(self, records, filters):
         """Filter the specified records, using basic iteration.
@@ -100,15 +59,27 @@ class MemoryBasedStorage(StorageBase):
             COMPARISON.IN: operator.contains,
             COMPARISON.EXCLUDE: lambda x, y: not operator.contains(x, y),
         }
-
         for record in records:
             matches = True
             for f in filters:
-                left = record.get(f.field)
                 right = f.value
+                left = record
+                subfields = f.field.split('.')
+                for subfield in subfields:
+                    if not isinstance(left, dict):
+                        break
+                    left = left.get(subfield)
+
                 if f.operator in (COMPARISON.IN, COMPARISON.EXCLUDE):
-                    right = left
-                    left = f.value
+                    right, left = left, right
+                else:
+                    # Python3 cannot compare None to other value.
+                    if left is None:
+                        if f.operator in (COMPARISON.GT, COMPARISON.MIN):
+                            matches = False
+                            continue
+                        elif f.operator in (COMPARISON.LT, COMPARISON.MAX):
+                            continue  # matches = matches and True
                 matches = matches and operators[f.operator](left, right)
             if matches:
                 yield record
@@ -118,7 +89,7 @@ class MemoryBasedStorage(StorageBase):
         """
         return apply_sorting(records, sorting)
 
-    def extract_record_set(self, collection_id, records,
+    def extract_record_set(self, records,
                            filters, sorting, id_field, deleted_field,
                            pagination_rules=None, limit=None):
         """Take the list of records and handle filtering, sorting and
@@ -169,7 +140,7 @@ class Storage(MemoryBasedStorage):
         self._timestamps = defaultdict(dict)
 
     def collection_timestamp(self, collection_id, parent_id, auth=None):
-        ts = self._timestamps[collection_id].get(parent_id)
+        ts = self._timestamps[parent_id].get(collection_id)
         if ts is not None:
             return ts
         return self._bump_timestamp(collection_id, parent_id)
@@ -199,7 +170,7 @@ class Storage(MemoryBasedStorage):
             current = utils.msec_time()
 
         # Bump the timestamp only if it's more than the previous one.
-        previous = self._timestamps[collection_id].get(parent_id)
+        previous = self._timestamps[parent_id].get(collection_id)
         if previous and previous >= current:
             collection_timestamp = previous + 1
         else:
@@ -208,52 +179,54 @@ class Storage(MemoryBasedStorage):
         # In case the timestamp was specified, the collection timestamp will
         # be different from the updated timestamp. As such, we want to return
         # the one of the record, and not the collection one.
-        if not is_specified:
+        if not is_specified or previous == current:
             current = collection_timestamp
 
-        self._timestamps[collection_id][parent_id] = collection_timestamp
+        self._timestamps[parent_id][collection_id] = collection_timestamp
         return current
 
     def create(self, collection_id, parent_id, record, id_generator=None,
-               unique_fields=None, id_field=DEFAULT_ID_FIELD,
+               id_field=DEFAULT_ID_FIELD,
                modified_field=DEFAULT_MODIFIED_FIELD, auth=None):
-        self.check_unicity(collection_id, parent_id, record,
-                           unique_fields=unique_fields,
-                           id_field=id_field,
-                           for_creation=True)
-
         id_generator = id_generator or self.id_generator
         record = record.copy()
-        _id = record.setdefault(id_field, id_generator())
+        if id_field in record:
+            # Raise unicity error if record with same id already exists.
+            try:
+                existing = self.get(collection_id, parent_id, record[id_field])
+                raise exceptions.UnicityError(id_field, existing)
+            except exceptions.RecordNotFoundError:
+                pass
+        else:
+            record[id_field] = id_generator()
+
         self.set_record_timestamp(collection_id, parent_id, record,
                                   modified_field=modified_field)
-        self._store[collection_id][parent_id][_id] = record
-        self._cemetery[collection_id][parent_id].pop(_id, None)
+        _id = record[id_field]
+        self._store[parent_id][collection_id][_id] = record
+        self._cemetery[parent_id][collection_id].pop(_id, None)
         return record
 
     def get(self, collection_id, parent_id, object_id,
             id_field=DEFAULT_ID_FIELD,
             modified_field=DEFAULT_MODIFIED_FIELD,
             auth=None):
-        collection = self._store[collection_id][parent_id]
+        collection = self._store[parent_id][collection_id]
         if object_id not in collection:
             raise exceptions.RecordNotFoundError(object_id)
-        return collection[object_id]
+        return collection[object_id].copy()
 
     def update(self, collection_id, parent_id, object_id, record,
-               unique_fields=None, id_field=DEFAULT_ID_FIELD,
+               id_field=DEFAULT_ID_FIELD,
                modified_field=DEFAULT_MODIFIED_FIELD,
                auth=None):
         record = record.copy()
         record[id_field] = object_id
 
-        self.check_unicity(collection_id, parent_id, record,
-                           unique_fields=unique_fields,
-                           id_field=id_field)
-
         self.set_record_timestamp(collection_id, parent_id, record,
                                   modified_field=modified_field)
-        self._store[collection_id][parent_id][object_id] = record
+        self._store[parent_id][collection_id][object_id] = record
+        self._cemetery[parent_id][collection_id].pop(object_id, None)
         return record
 
     def delete(self, collection_id, parent_id, object_id,
@@ -275,24 +248,32 @@ class Storage(MemoryBasedStorage):
         # Add to deleted items, remove from store.
         if with_deleted:
             deleted = existing.copy()
-            self._cemetery[collection_id][parent_id][object_id] = deleted
-        self._store[collection_id][parent_id].pop(object_id)
-
+            self._cemetery[parent_id][collection_id][object_id] = deleted
+        self._store[parent_id][collection_id].pop(object_id)
         return existing
 
     def purge_deleted(self, collection_id, parent_id, before=None,
                       id_field=DEFAULT_ID_FIELD,
                       modified_field=DEFAULT_MODIFIED_FIELD,
                       auth=None):
-        num_deleted = len(self._cemetery[collection_id][parent_id].keys())
-        if before is not None:
-            kept = {key: value for key, value in
-                    self._cemetery[collection_id][parent_id].items()
-                    if value[modified_field] >= before}
-        else:
-            kept = {}
-        self._cemetery[collection_id][parent_id] = kept
-        return num_deleted - len(kept.keys())
+        parent_id_match = re.compile(parent_id.replace('*', '.*'))
+        by_parent_id = {pid: collections
+                        for pid, collections in self._cemetery.items()
+                        if parent_id_match.match(pid)}
+        num_deleted = 0
+        for pid, collections in by_parent_id.items():
+            if collection_id is not None:
+                collections = {collection_id: collections[collection_id]}
+            for collection, colrecords in collections.items():
+                if before is None:
+                    kept = {}
+                else:
+                    kept = {key: value for key, value in
+                            colrecords.items()
+                            if value[modified_field] >= before}
+                self._cemetery[pid][collection] = kept
+                num_deleted += (len(colrecords) - len(kept))
+        return num_deleted
 
     def get_all(self, collection_id, parent_id, filters=None, sorting=None,
                 pagination_rules=None, limit=None, include_deleted=False,
@@ -300,46 +281,50 @@ class Storage(MemoryBasedStorage):
                 modified_field=DEFAULT_MODIFIED_FIELD,
                 deleted_field=DEFAULT_DELETED_FIELD,
                 auth=None):
-        records = list(self._store[collection_id][parent_id].values())
+        records = list(self._store[parent_id][collection_id].values())
 
         deleted = []
         if include_deleted:
-            deleted = list(self._cemetery[collection_id][parent_id].values())
+            deleted = list(self._cemetery[parent_id][collection_id].values())
 
-        records, count = self.extract_record_set(collection_id,
-                                                 records + deleted,
+        records, count = self.extract_record_set(records + deleted,
                                                  filters, sorting,
                                                  id_field, deleted_field,
                                                  pagination_rules, limit)
-
         return records, count
 
+    def delete_all(self, collection_id, parent_id, filters=None,
+                   id_field=DEFAULT_ID_FIELD, with_deleted=True,
+                   modified_field=DEFAULT_MODIFIED_FIELD,
+                   deleted_field=DEFAULT_DELETED_FIELD,
+                   auth=None):
+        parent_id_match = re.compile(parent_id.replace('*', '.*'))
+        by_parent_id = {pid: collections
+                        for pid, collections in self._store.items()
+                        if parent_id_match.match(pid)}
 
-def get_unicity_rules(collection_id, parent_id, record, unique_fields,
-                      id_field, for_creation):
-    """Build filter to target existing records that violate the resource
-    unicity rules on fields.
+        records = []
+        for pid, collections in by_parent_id.items():
+            if collection_id is not None:
+                collections = {collection_id: collections[collection_id]}
+            for collection, colrecords in collections.items():
+                for r in colrecords.values():
+                    records.append(dict(__collection_id__=collection,
+                                        __parent_id__=pid,
+                                        **r))
 
-    :returns: a list of list of filters
-    """
-    rules = []
-    for field in set(unique_fields):
-        value = record.get(field)
+        records, count = self.extract_record_set(records,
+                                                 filters, None,
+                                                 id_field, deleted_field)
 
-        # None values cannot be considered unique.
-        if value is None:
-            continue
-
-        filters = [Filter(field, value, COMPARISON.EQ)]
-
-        if not for_creation:
-            object_id = record[id_field]
-            exclude = Filter(id_field, object_id, COMPARISON.NOT)
-            filters.append(exclude)
-
-        rules.append(filters)
-
-    return rules
+        deleted = [self.delete(r.pop('__collection_id__'),
+                               r.pop('__parent_id__'),
+                               r[id_field],
+                               id_field=id_field, with_deleted=with_deleted,
+                               modified_field=modified_field,
+                               deleted_field=deleted_field)
+                   for r in records]
+        return deleted
 
 
 def apply_sorting(records, sorting):
@@ -354,7 +339,13 @@ def apply_sorting(records, sorting):
 
     def column(first, record, name):
         empty = first.get(name, float('inf'))
-        return record.get(name, empty)
+        subfields = name.split('.')
+        value = record
+        for subfield in subfields:
+            value = value.get(subfield, empty)
+            if not isinstance(value, dict):
+                break
+        return value
 
     for sort in reversed(sorting):
         result = sorted(result,

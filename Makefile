@@ -5,6 +5,7 @@ SPHINX_BUILDDIR = docs/_build
 VENV := $(shell echo $${VIRTUAL_ENV-.venv})
 PYTHON = $(VENV)/bin/python
 DEV_STAMP = $(VENV)/.dev_env_installed.stamp
+DOC_STAMP = $(VENV)/.doc_env_installed.stamp
 INSTALL_STAMP = $(VENV)/.install.stamp
 TEMPDIR := $(shell mktemp -d)
 
@@ -51,6 +52,11 @@ $(DEV_STAMP): $(PYTHON) dev-requirements.txt
 	$(VENV)/bin/pip install -Ur dev-requirements.txt
 	touch $(DEV_STAMP)
 
+install-docs: $(DOC_STAMP)
+$(DOC_STAMP): $(PYTHON) docs/requirements.txt
+	$(VENV)/bin/pip install -Ur docs/requirements.txt
+	touch $(DOC_STAMP)
+
 virtualenv: $(PYTHON)
 $(PYTHON):
 	$(VIRTUALENV) $(VENV)
@@ -64,19 +70,26 @@ build-requirements:
 $(SERVER_CONFIG):
 	$(VENV)/bin/kinto --ini $(SERVER_CONFIG) init
 
-serve: install-dev $(SERVER_CONFIG) migrate
+NAME := kinto
+SOURCE := $(shell git config remote.origin.url | sed -e 's|git@|https://|g' | sed -e 's|github.com:|github.com/|g')
+VERSION := $(shell git describe --always --tag)
+COMMIT := $(shell git log --pretty=format:'%H' -n 1)
+version-file:
+	echo '{"name":"$(NAME)","version":"$(VERSION)","source":"$(SOURCE)","commit":"$(COMMIT)"}' > version.json
+
+serve: install-dev $(SERVER_CONFIG) migrate version-file
 	$(VENV)/bin/kinto --ini $(SERVER_CONFIG) start --reload
 
 migrate: install $(SERVER_CONFIG)
 	$(VENV)/bin/kinto --ini $(SERVER_CONFIG) migrate
 
-tests-once: install-dev
+tests-once: install-dev version-file install-postgres install-monitoring
 	$(VENV)/bin/py.test --cov-report term-missing --cov-fail-under 100 --cov kinto
 
 flake8: install-dev
-	$(VENV)/bin/flake8 kinto
+	$(VENV)/bin/flake8 kinto tests
 
-tests:
+tests: version-file
 	$(VENV)/bin/tox
 
 clean:
@@ -98,7 +111,7 @@ loadtest-check-tutorial: install-postgres
 	  make tutorial SERVER_URL=http://127.0.0.1:8888; \
 	  EXIT_CODE=$$?; kill $$PID; exit $$EXIT_CODE
 
-loadtest-check-simulation: install-postgres install-monitoring
+loadtest-check-simulation: install-postgres
 	$(VENV)/bin/kinto --ini loadtests/server.ini migrate > kinto.log &&\
 	$(VENV)/bin/kinto --ini loadtests/server.ini start > kinto.log & PID=$$! && \
 	  rm kinto.log || cat kinto.log; \
@@ -106,7 +119,7 @@ loadtest-check-simulation: install-postgres install-monitoring
 	  make simulation SERVER_URL=http://127.0.0.1:8888; \
 	  EXIT_CODE=$$?; kill $$PID; exit $$EXIT_CODE
 
-docs: install-dev
-	$(VENV)/bin/sphinx-build -a -n -b html -d $(SPHINX_BUILDDIR)/doctrees docs $(SPHINX_BUILDDIR)/html
+docs: install-docs
+	$(VENV)/bin/sphinx-build -a -W -n -b html -d $(SPHINX_BUILDDIR)/doctrees docs $(SPHINX_BUILDDIR)/html
 	@echo
 	@echo "Build finished. The HTML pages are in $(SPHINX_BUILDDIR)/html/index.html"

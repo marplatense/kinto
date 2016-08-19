@@ -63,22 +63,23 @@ If ``kinto-fxa`` is installed, an additional key is present:
 
 - ``oauth`` true if authentication is operational
 
-Return ``200`` if the connection with each service is working properly
-and ``503`` if something doesn't work.
+Return |status-200| if the connection with each service is working properly
+and |status-503| if something doesn't work.
 
 
 GET /__lbheartbeat__
 ====================
 
-Always return ``200`` with empty body.
+Always return |status-200| with empty body.
 
 Unlike the ``__heartbeat__`` health check endpoint, which return an error
 when backends and other upstream services are unavailable, this should
-always return 200.
+always return |status-200|.
 
 This endpoint is suitable for a load balancer membership test.
 It the load balancer cannot obtain a response from this endpoint, it will
 stop sending traffic to the instance and replace it.
+
 
 .. _api-utilities-contribute:
 
@@ -87,3 +88,22 @@ GET /contribute.json
 
 The returned value is a JSON mapping containing open source contribution
 information as advocated by https://www.contributejson.org
+
+
+GET /__version__
+==================
+
+Return a JSON mapping containing information about what distribution
+has been deployed by OPS.
+
+::
+
+    {
+      "name":"kinto",
+      "version":"3.3.2",
+      "commit":"ab8db089ee63dc8e14f4bcfc427a86f311dd7e52",
+      "source":"https://github.com/Kinto/kinto.git"
+    }
+
+The content of the distribution can be configured by putting a
+``version.json`` file in the current working directory.
