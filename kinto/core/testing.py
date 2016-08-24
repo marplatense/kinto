@@ -19,8 +19,8 @@ skip_if_no_postgresql = unittest.skipIf(sqlalchemy is None,
 
 
 def load_default_settings(section):
-    global_cfg = 'kinto/tests/core/test.cfg'
-    local_cfg = 'kinto/tests/core/test.local.cfg'
+    global_cfg = 'tests/core/test.cfg'
+    local_cfg = 'tests/core/test.local.cfg'
     config = configparser.ConfigParser()
     if os.path.exists(global_cfg):
         config.read_file(open(global_cfg))

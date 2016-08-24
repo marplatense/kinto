@@ -3,12 +3,14 @@ import pytest
 
 from kinto.core.errors import ERRORS
 from kinto.core.storage.exceptions import RecordNotFoundError
-from kinto.core.testing import FormattedErrorMixin, sqlalchemy, unittest
+from kinto.core.testing import FormattedErrorMixin, sqlalchemy, unittest, load_default_settings
 from kinto.plugins.quotas.listener import (
     QUOTA_RESOURCE_NAME, QUOTA_BUCKET_ID, QUOTA_COLLECTION_ID)
 from kinto.plugins.quotas.utils import record_size
 
 from .. import support
+
+SETTINGS = load_default_settings('quotas')
 
 
 class QuotaWebTest(support.BaseWebTest, unittest.TestCase):
@@ -45,12 +47,7 @@ class QuotaWebTest(support.BaseWebTest, unittest.TestCase):
         settings = super(QuotaWebTest, self).get_app_settings(extras)
 
         # Setup the postgresql backend for transaction support.
-        settings['storage_backend'] = 'kinto.core.storage.postgresql'
-        db = "postgres://postgres:postgres@localhost/testdb"
-        settings['storage_url'] = db
-        settings['permission_backend'] = 'kinto.core.permission.postgresql'
-        settings['permission_url'] = db
-        settings['cache_backend'] = 'kinto.core.cache.memory'
+        settings.update(SETTINGS)
 
         settings['includes'] = 'kinto.plugins.quotas'
         return settings
