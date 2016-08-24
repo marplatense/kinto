@@ -8,12 +8,16 @@ class HistorySchema(resource.ResourceSchema):
     user_id = colander.SchemaNode(colander.String())
     uri = colander.SchemaNode(colander.String())
     action = colander.SchemaNode(colander.String())
+    date = colander.SchemaNode(colander.String())
     resource_name = colander.SchemaNode(colander.String())
     bucket_id = colander.SchemaNode(colander.String())
     collection_id = colander.SchemaNode(colander.String())
     group_id = colander.SchemaNode(colander.String())
     record_id = colander.SchemaNode(colander.String())
     target = colander.SchemaNode(colander.Mapping())
+
+    class Options:
+        preserve_unknown = False
 
 
 @resource.register(name='history',

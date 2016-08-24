@@ -79,6 +79,16 @@ class HistoryViewTest(HistoryWebTest):
         assert entry['action'] == 'create'
         assert entry['uri'] == '/buckets/test'
 
+    def test_history_supports_creation_via_plural_endpoint(self):
+        resp = self.app.post_json('/buckets', {'data': {'id': 'posted'}},
+                                  headers=self.headers)
+        resp = self.app.get('/buckets/posted/history', headers=self.headers)
+        entry = resp.json['data'][0]
+        assert entry['resource_name'] == 'bucket'
+        assert entry['bucket_id'] == 'posted'
+        assert entry['action'] == 'create'
+        assert entry['uri'] == '/buckets/posted'
+
     def test_tracks_bucket_attributes_update(self):
         body = {'data': {'foo': 'baz'}}
         self.app.patch_json(self.bucket_uri, body,
@@ -103,6 +113,24 @@ class HistoryViewTest(HistoryWebTest):
         stored_in_backend, _ = storage.get_all(parent_id='/buckets/test',
                                                collection_id='history')
         assert len(stored_in_backend) == 0
+
+    def test_delete_all_buckets_destroys_history_entries(self):
+        self.app.put_json('/buckets/1', {"data": {"a": 1}},
+                          headers=self.headers)
+
+        self.app.delete('/buckets?a=1', headers=self.headers)
+
+        # Entries about deleted bucket are gone.
+        storage = self.app.app.registry.storage
+        stored_in_backend, _ = storage.get_all(parent_id='/buckets/1',
+                                               collection_id='history')
+        assert len(stored_in_backend) == 0
+
+        # Entries of other buckets are still here.
+        resp = self.app.get(self.history_uri, headers=self.headers)
+        entry = resp.json['data'][-1]
+        assert entry['bucket_id'] == 'test'
+        assert entry['action'] == 'create'
 
     #
     # Collection
@@ -242,6 +270,11 @@ class FilteringTest(HistoryWebTest):
         self.app.delete('/buckets/bid/collections/cid/records/rid',
                         headers=self.headers)
 
+    def test_filter_by_unknown_field_is_not_allowed(self):
+        self.app.get('/buckets/bid/history?movie=bourne',
+                     headers=self.headers,
+                     status=400)
+
     def test_filter_by_action(self):
         resp = self.app.get('/buckets/bid/history?action=delete',
                             headers=self.headers)
@@ -285,6 +318,12 @@ class FilteringTest(HistoryWebTest):
                             headers=self.headers)
         assert len(resp.json['data']) == 4
 
+    def test_filter_by_target_fields(self):
+        uri = '/buckets/bid/history?target.data.id=rid'
+        resp = self.app.get(uri,
+                            headers=self.headers)
+        assert len(resp.json['data']) == 3  # create, update, delete
+
     def test_limit_results(self):
         resp = self.app.get('/buckets/bid/history?_limit=2',
                             headers=self.headers)
@@ -296,6 +335,12 @@ class FilteringTest(HistoryWebTest):
                             headers=self.headers)
         assert sorted(resp.json['data'][0].keys()) == ['action', 'id',
                                                        'last_modified', 'uri']
+
+    def test_sort_by_date(self):
+        resp = self.app.get('/buckets/bid/history?_sort=date',
+                            headers=self.headers)
+        entries = resp.json['data']
+        assert entries[0]['date'] < entries[-1]['date']
 
 
 class BulkTest(HistoryWebTest):
@@ -403,6 +448,11 @@ class DefaultBucketTest(HistoryWebTest):
 
 
 class PermissionsTest(HistoryWebTest):
+
+    def get_app_settings(self, extras=None):
+        settings = super(PermissionsTest, self).get_app_settings(extras)
+        settings['experimental_permissions_endpoint'] = 'true'
+        return settings
 
     def setUp(self):
         self.alice_headers = get_user_headers('alice')
@@ -523,3 +573,9 @@ class PermissionsTest(HistoryWebTest):
         resp = self.app.get('/buckets/test/history',
                             headers=self.alice_headers)
         assert resp.headers['ETag'] != before
+
+    def test_history_entries_are_not_listed_in_permissions_endpoint(self):
+        resp = self.app.get('/permissions',
+                            headers=self.headers)
+        entries = [e['resource_name'] == 'history' for e in resp.json["data"]]
+        assert not any(entries)

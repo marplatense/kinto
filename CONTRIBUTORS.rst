@@ -16,6 +16,7 @@ Contributors
 * David Larlet <david@larlet.fr>
 * Enguerran <engcolson@gmail.com>
 * Eric Bréhault <ebrehault@gmail.com>
+* Eric Le Lay <elelay@macports.org>
 * Éric Lemoine <eric.lemoine@gmail.com>
 * Ethan Glasser-Camp <ethan@betacantrips.com>
 * Fil <fil@rezo.net>
@@ -40,6 +41,7 @@ Contributors
 * Rémy Hubscher <rhubscher@mozilla.com>
 * Shweta Oak <oakshweta11@gmail.com>
 * Sofia Utsch <sofia.utsch@gmail.com>
+* Surya Prashanth <prashantsurya@ymail.com>
 * SwhGo_oN
 * Tarek Ziade <tarek@mozilla.com>
 * Taylor Zane Glaeser <tzglaeser@gmail.com>

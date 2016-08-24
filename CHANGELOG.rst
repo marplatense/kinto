@@ -3,17 +3,45 @@ Changelog
 
 This document describes changes between each past release.
 
-4.1.0 (unreleased)
+4.2.0 (unreleased)
 ------------------
+
+- Nothing changed yet.
+
+
+4.1.0 (2016-08-22)
+------------------
+
+**New features**
+
+- Show warning when ``http_scheme`` is not set to ``https`` (#706, thanks @Prashant-Surya)
+
+**Bug fixes**
+
+- Fix sorting/filtering history entries by ``date`` field
+- On subobject filtering, return a 400 error response only if first level field
+  is unknown (on resources with strict schema)
+
+
+4.0.1 (2016-08-22)
+------------------
+
+**Bug fixes**
+
+- Return 400 error response when history is filtered with unknown field
+- Fix crash on permissions endpoint when history is enabled (#774)
+- Fix crash on history when interacting via the bucket plural endpoint (``/buckets``) (fixes #773)
 
 **Internal changes**
 
 - Fix documentation of errors codes (fixes #766)
-- A lot of tests clean-up. The ``tests`` are now outside the ``kinto`` package
+- ``kinto.id_generator`` was removed from documentation since it does not
+  behave as expected (fixes #757, thanks @doplumi)
   folder and a ``kinto.core.testing`` module was introduced for tests helpers
   (fixes #605)
 - In documentation, link the notion of principals to the permissions page instead
   of glossary
+- Add details about ``PATCH`` behaviour (fixes #566)
 
 
 4.0.0 (2016-08-17)
@@ -49,7 +77,7 @@ Protocol is now at version **1.9**. See `API changelog`_.
 - Added a new ``--dry-run`` option to command-line script ``migrate`` that will simulate
   migration operation without executing on the backend (thanks @lavish205! #685)
 - Added ability to plug custom StatsD backend implementations via a new ``kinto.statsd_backend``
-  setting. Useful for Datadog™ integration for example (fixes #626).
+  setting. Useful for Datadogâ˘ integration for example (fixes #626).
 - Added a ``delete-collection`` action to the ``kinto`` command. (#727)
 - Added verbosity options to the ``kinto`` command. (#745)
 - Added a built-in plugin that allows to define quotas per bucket or collection. (#752)
