@@ -4,7 +4,7 @@ import logging
 import kinto.core
 from pyramid.config import Configurator
 from pyramid.settings import asbool
-from pyramid.security import Authenticated
+from pyramid.security import Authenticated, Everyone
 
 from kinto.authorization import RouteFactory
 
@@ -13,7 +13,7 @@ from kinto.authorization import RouteFactory
 __version__ = pkg_resources.get_distribution(__package__).version
 
 # Implemented HTTP API Version
-HTTP_API_VERSION = '1.9'
+HTTP_API_VERSION = '1.10'
 
 # Main kinto logger
 logger = logging.getLogger(__name__)
@@ -27,6 +27,7 @@ DEFAULT_SETTINGS = {
     'storage_backend': 'kinto.core.storage.memory',
     'project_docs': 'https://kinto.readthedocs.io/',
     'bucket_create_principals': Authenticated,
+    'permissions_read_principals': Everyone,
     'multiauth.authorization_policy': (
         'kinto.authorization.AuthorizationPolicy'),
     'experimental_collection_schema_validation': False,

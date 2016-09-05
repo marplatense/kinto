@@ -118,8 +118,7 @@ def register_resource(resource_cls, settings=None, viewset=None, depth=1,
             service = register_service('record', config.registry.settings)
             config.add_cornice_service(service)
 
-    info = venusian.attach(resource_cls, callback, category='pyramid',
-                           depth=depth)
+    info = venusian.attach(resource_cls, callback, category='pyramid', depth=depth)
     return callback
 
 
@@ -922,7 +921,8 @@ class UserResource(object):
                 )
                 continue
 
-            m = re.match(r'^(min|max|not|lt|gt|in|exclude)_([\w\.]+)$', param)
+            allKeywords = '|'.join([i.name.lower() for i in COMPARISON])
+            m = re.match(r'^('+allKeywords+')_([\w\.]+)$', param)
             if m:
                 keyword, field = m.groups()
                 operator = getattr(COMPARISON, keyword.upper())
