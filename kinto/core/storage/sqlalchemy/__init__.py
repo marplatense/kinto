@@ -58,13 +58,14 @@ class Storage(StorageBase):
     def __init__(self, *args, **kwargs):
         self.__dict__.update(kwargs)
 
-    def initialize_schema(self):
+    def initialize_schema(self, dry_run=False):
         """Create every necessary objects (like tables or indices) in the
         backend.
 
         This is excuted when the ``cliquet migrate`` command is ran.
         """
-        self.flush()
+        if not dry_run:
+            self.flush()
 
     def flush(self, auth=None):
         """Remove **every** object from this storage.
