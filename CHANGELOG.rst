@@ -3,7 +3,25 @@ Changelog
 
 This document describes changes between each past release.
 
-4.2.0 (unreleased)
+4.3.0 (unreleased)
+------------------
+
+**Protocol**
+
+- Fix error response consistency with safe creations if the ``create`` permission
+  is granted (fixes #792). The server now returns a ``412`` instead of a ``403`` if
+  the ``If-None-Match: *`` header is provided and the ``create`` permission is granted.
+
+**New features**
+
+- The storage backend now allows ``parent_id`` pattern matching in ``kinto.core.storage.get_all``. (#821)
+
+**Internal changes**
+
+- Moved storage/cache/permissions base tests to ``kinto.core.*.testing`` (fixes #801)
+
+
+4.2.0 (2016-09-15)
 ------------------
 
 **Protocol**
@@ -18,6 +36,10 @@ Protocol is now at version **1.10**. See `API changelog`_.
 - Fix heartbeat transaction locks with PostgreSQL backends (fixes #804)
 - Fix crash with PostgreSQL storage backend when filtering with integer on
   a missing field (fixes #813)
+
+**Internal changes**
+
+- Fix links to comparison table in docs
 
 
 4.1.1 (2016-08-29)
@@ -130,6 +152,22 @@ Protocol is now at version **1.9**. See `API changelog`_.
 - Improved parts of the FAQ (#744)
 - Improve 404 and 403 error handling to make them customizable. (#748)
 - ``kinto.core`` resources are now schemaless by default (fixes #719)
+
+
+3.3.3 (2016-09-12)
+------------------
+
+- Fix heartbeat transaction locks with PostgreSQL backends (fixes #804)
+
+
+3.3.2 (2016-07-21)
+------------------
+
+**Bug fixes**
+
+- Fix Redis get_accessible_object implementation (#725)
+- Fix bug where the resource events of a request targetting two groups/collection
+  from different buckets would be grouped together.
 
 
 3.3.1 (2016-07-19)
