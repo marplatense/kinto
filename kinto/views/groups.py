@@ -5,16 +5,22 @@ from kinto.core.events import ResourceChanged, ACTIONS
 from pyramid.events import subscriber
 
 
+def validate_member(node, member):
+    if member.startswith('/buckets/') or member == 'system.Everyone':
+        raise colander.Invalid(node, "%r is not a valid user ID." % member)
+
+
 class GroupSchema(resource.ResourceSchema):
     members = colander.SchemaNode(colander.Sequence(),
-                                  colander.SchemaNode(colander.String()))
+                                  colander.SchemaNode(colander.String(),
+                                                      validator=validate_member))
 
 
 @resource.register(name='group',
                    collection_path='/buckets/{{bucket_id}}/groups',
                    record_path='/buckets/{{bucket_id}}/groups/{{id}}')
 class Group(resource.ShareableResource):
-    mapping = GroupSchema()
+    schema = GroupSchema
 
     def get_parent_id(self, request):
         bucket_id = request.matchdict['bucket_id']

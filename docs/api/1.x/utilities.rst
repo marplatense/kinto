@@ -37,7 +37,8 @@ The returned value is a JSON mapping containing:
 
 **Optional**
 
-- ``user``: A mapping with an ``id`` field for the currently connected user id.
+- ``user``: A mapping with an ``id`` field and a list of ``principals``
+  for the currently connected user id.
   The field is not present when no Authorization header is provided.
 
 
@@ -90,11 +91,13 @@ The returned value is a JSON mapping containing open source contribution
 information as advocated by https://www.contributejson.org
 
 
+.. _api-utilities-version:
+
 GET /__version__
 ==================
 
 Return a JSON mapping containing information about what distribution
-has been deployed by OPS.
+has been deployed by OPs.
 
 ::
 
@@ -105,5 +108,8 @@ has been deployed by OPS.
       "source":"https://github.com/Kinto/kinto.git"
     }
 
-The content of the distribution can be configured by putting a
-``version.json`` file in the current working directory.
+The content of this view comes from a file, whose location is
+specified via the ``kinto.version_json_path`` setting or ``KINTO_VERSION_JSON_PATH``
+environment variable (*default location is* ``version.json`` *in current working directory*).
+
+Return |status-404| if no ``version.json`` file is found.

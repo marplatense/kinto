@@ -79,6 +79,7 @@ DEFAULT_SETTINGS = {
     'tm.annotate_user': False,  # Do annotate transactions with the user-id.
     'transaction_per_request': True,
     'userid_hmac_secret': '',
+    'version_json_path': 'version.json',
     'version_prefix_redirect_enabled': True,
     'trailing_slash_redirect_enabled': True,
     'multiauth.groupfinder': 'kinto.core.authorization.groupfinder',
@@ -99,8 +100,8 @@ class Service(CorniceService):
     default_cors_headers = ('Backoff', 'Retry-After', 'Alert',
                             'Content-Length')
 
-    def error_handler(self, error):
-        return errors.json_error_handler(error)
+    def error_handler(self, request):
+        return errors.json_error_handler(request)
 
     @classmethod
     def init_from_settings(cls, settings):

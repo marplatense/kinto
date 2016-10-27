@@ -27,7 +27,9 @@ On each kind of object the set of permissions can be:
 
 In the case of a creation, since an object can have several kinds of children, the
 permission is prefixed by the type of child (for instance ``group:create``,
-``collection:create``).
+``collection:create``). When a user is allowed to create a child, she is allowed
+to read the parent attributes as well as listing accessible objects via the
+plural endpoint.
 
 The following table lists all permissions that can be associated to each kind
 of object.
@@ -35,20 +37,23 @@ of object.
 +----------------+------------------------+----------------------------------+
 | Object         | Associated permissions | Description                      |
 +================+========================+==================================+
-| Configuration  | ``bucket:create``      | Create new buckets.              |
-|                |                        |                                  |
+| Configuration  | ``bucket:create``      | Create new buckets and list      |
+|                |                        | existing buckets.                |
 +----------------+------------------------+----------------------------------+
 | Bucket         | ``read``               | Read all objects in the bucket.  |
-|                |                        |                                  |
 |                +------------------------+----------------------------------+
 |                | ``write``              | Write + read on the              |
 |                |                        | bucket and all children objects. |
 |                +------------------------+----------------------------------+
 |                | ``collection:create``  | Create new                       |
-|                |                        | collections in the bucket.       |
+|                |                        | collections in the bucket,       |
+|                |                        | list accessible collections      |
+|                |                        | and read bucket metadata.        |
 |                +------------------------+----------------------------------+
 |                | ``group:create``       | Create new groups                |
-|                |                        | in the bucket.                   |
+|                |                        | in the bucket,                   |
+|                |                        | list accessible groups           |
+|                |                        | and read bucket metadata.        |
 +----------------+------------------------+----------------------------------+
 | Collection     | ``read``               | Read all                         |
 |                |                        | objects in the collection.       |
@@ -57,7 +62,9 @@ of object.
 |                |                        | the collection.                  |
 |                +------------------------+----------------------------------+
 |                | ``record:create``      | Create new records               |
-|                |                        | in the collection.               |
+|                |                        | in the collection,               |
+|                |                        | list accessible records          |
+|                |                        | and read collection metadata.    |
 +----------------+------------------------+----------------------------------+
 | Record         | ``read``               | Read the record.                 |
 |                |                        | record.                          |
@@ -72,8 +79,10 @@ of object.
 |                |                        |                                  |
 +----------------+------------------------+----------------------------------+
 
-Every modification of an object (including the creation of new objects)
-grant the `write` permission to their creator.
+.. important::
+
+    Every modification of an object (including the creation of new objects)
+    grant the ``write`` permission to their creator/editor.
 
 
 .. note::
@@ -156,7 +165,11 @@ In this case the user ID is: ``basicauth:631c2d625ee5726172cf67c6750de10a3e1a04b
 Permissions request payload
 ===========================
 
-In the JSON requests payloads, the ``permissions`` attribute comes along the ``data`` attribute. Permissions can be replaced or modified independently from data.
+If the current user has the ``write`` permission on the object, the permissions
+are returned in the ``permissions`` attribute  along the ``data`` attribute
+in the JSON requests payloads.
+
+Permissions can be replaced or modified independently from data.
 
 ``permissions`` is a JSON dict with the following structure::
 

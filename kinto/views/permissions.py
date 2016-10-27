@@ -18,14 +18,14 @@ class PermissionsModel(object):
                     limit=None, include_deleted=False, parent_id=None):
         # Invert the permissions inheritance tree.
         perms_descending_tree = {}
-        for obtained, obtained_from in PERMISSIONS_INHERITANCE_TREE.items():
-            on_resource, obtained_perm = obtained.split(':', 1)
-            for from_resource, perms in obtained_from.items():
-                for perm in perms:
-                    perms_descending_tree.setdefault(from_resource, {})\
-                                         .setdefault(perm, {})\
-                                         .setdefault(on_resource, set())\
-                                         .add(obtained_perm)
+        for on_resource, tree in PERMISSIONS_INHERITANCE_TREE.items():
+            for obtained_perm, obtained_from in tree.items():
+                for from_resource, perms in obtained_from.items():
+                    for perm in perms:
+                        perms_descending_tree.setdefault(from_resource, {})\
+                                             .setdefault(perm, {})\
+                                             .setdefault(on_resource, set())\
+                                             .add(obtained_perm)
 
         # Obtain current principals.
         principals = self.request.effective_principals
@@ -97,7 +97,7 @@ class PermissionsSchema(resource.ResourceSchema):
                    permission=NO_PERMISSION_REQUIRED)
 class Permissions(resource.ShareableResource):
 
-    mapping = PermissionsSchema()
+    schema = PermissionsSchema
 
     def __init__(self, request, context=None):
         super(Permissions, self).__init__(request, context)

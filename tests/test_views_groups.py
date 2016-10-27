@@ -1,10 +1,12 @@
-from kinto.core.testing import unittest
+import unittest
+from kinto.core.errors import ERRORS
+from kinto.core.testing import FormattedErrorMixin
 
 from .support import (BaseWebTest, MINIMALIST_BUCKET,
                       MINIMALIST_GROUP)
 
 
-class GroupViewTest(BaseWebTest, unittest.TestCase):
+class GroupViewTest(FormattedErrorMixin, BaseWebTest, unittest.TestCase):
 
     collection_url = '/buckets/beers/groups'
     record_url = '/buckets/beers/groups/moderators'
@@ -104,6 +106,30 @@ class GroupViewTest(BaseWebTest, unittest.TestCase):
                           headers=self.headers,
                           status=201)
 
+    def test_group_doesnt_accept_system_Everyone(self):
+        group = MINIMALIST_GROUP.copy()
+        group['data'] = {'members': ['system.Everyone']}
+        response = self.app.put_json('/buckets/beers/groups/moderator',
+                                     group,
+                                     headers=self.headers,
+                                     status=400)
+        self.assertFormattedError(
+            response, 400, ERRORS.INVALID_PARAMETERS,
+            "Invalid parameters",
+            "'system.Everyone' is not a valid user ID.")
+
+    def test_group_doesnt_accept_groups_inside_groups(self):
+        group = MINIMALIST_GROUP.copy()
+        group['data'] = {'members': ['/buckets/beers/groups/administrators']}
+        response = self.app.put_json('/buckets/beers/groups/moderator',
+                                     group,
+                                     headers=self.headers,
+                                     status=400)
+        self.assertFormattedError(
+            response, 400, ERRORS.INVALID_PARAMETERS,
+            "Invalid parameters",
+            "'/buckets/beers/groups/administrators' is not a valid user ID.")
+
 
 class GroupManagementTest(BaseWebTest, unittest.TestCase):
 
@@ -118,6 +144,12 @@ class GroupManagementTest(BaseWebTest, unittest.TestCase):
         self.app.delete(self.group_url, headers=self.headers)
         self.app.get(self.group_url, headers=self.headers,
                      status=404)
+
+    def test_unknown_group_raises_404(self):
+        other_group = self.group_url.replace('moderators', 'blah')
+        resp = self.app.get(other_group, headers=self.headers, status=404)
+        self.assertEqual(resp.json['details']['id'], 'blah')
+        self.assertEqual(resp.json['details']['resource_name'], 'group')
 
     def test_group_is_removed_from_users_principals_on_group_deletion(self):
         self.app.put_json(self.group_url, MINIMALIST_GROUP,
@@ -173,6 +205,13 @@ class GroupManagementTest(BaseWebTest, unittest.TestCase):
         self.assertEquals(self.permission.get_user_principals('mat'),
                           {group_url})
 
+    def test_group_with_authenticated_is_added_to_everbody(self):
+        self.create_group('beers', 'reviewers', ['system.Authenticated'])
+        self.assertEquals(self.permission.get_user_principals('natim'),
+                          {'/buckets/beers/groups/reviewers'})
+        self.assertEquals(self.permission.get_user_principals('mat'),
+                          {'/buckets/beers/groups/reviewers'})
+
     def test_group_member_removal_updates_user_principals_with_patch(self):
         self.create_group('beers', 'moderators', ['natim', 'mat'])
         group_url = '/buckets/beers/groups/moderators'
@@ -214,7 +253,7 @@ class InvalidGroupTest(BaseWebTest, unittest.TestCase):
                                  invalid,
                                  headers=self.headers,
                                  status=400)
-        self.assertEqual(resp.json['message'], "data is missing")
+        self.assertEqual(resp.json['message'], "data in body: Required")
 
     def test_groups_must_have_members_attribute(self):
         invalid = {'data': {'alias': 'admins'}}

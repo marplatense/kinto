@@ -23,6 +23,7 @@ REQUIREMENTS = [
     'colorama',
     'cornice >= 1.1',  # Fix cache CORS
     'jsonschema',
+    'jsonpatch',
     'python-dateutil',
     'pyramid_multiauth >= 0.8',  # User on policy selected event.
     'pyramid_tm',
@@ -98,7 +99,7 @@ ENTRY_POINTS = {
 
 
 setup(name='kinto',
-      version='4.3.0.dev0',
+      version='4.4.0.dev0',
       description='Kinto Web Service - Store, Sync, Share, and Self-Host.',
       long_description=README + "\n\n" + CHANGELOG + "\n\n" + CONTRIBUTORS,
       license='Apache License (2.0)',
