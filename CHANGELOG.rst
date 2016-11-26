@@ -3,15 +3,41 @@ Changelog
 
 This document describes changes between each past release.
 
-4.4.0 (unreleased)
+5.0.1 (unreleased)
 ------------------
 
 **Protocol**
 
-- Add support to ``JSON-Patch`` (RFC 6902).
-- Add support to ``JSON-Merge`` (RFC 7396).
+- Add a ``basicauth`` capability when activated on the server. (#937)
+
+**Bug fixes**
+
+- Permissions are now correctly removed from permission backend when a parent
+  object is deleted (fixes #898)
+- Fix ``record_id`` attribute in history entries when several records are
+  modified via a batch request (fixes #942)
+
+**Internal changes**
+
+- The ``delete_object_permissions()`` of the permission backend now supports
+  URI patterns (eg. ``/bucket/id*``)
+
+
+5.0.0 (2016-11-18)
+------------------
+
+**Breaking changes**
+
+- Upgraded to Cornice 2.0 (#790)
+
+**Protocol**
+
+- Add support for `JSON-Patch (RFC 6902) <https://tools.ietf.org/html/rfc6902>`_.
+- Add support for `JSON-Merge (RFC 7396) <https://tools.ietf.org/html/rfc7396>`_.
 - Added a principals list to ``hello`` view when authenticated.
 - Added details attribute to 404 errors. (#818)
+
+Protocol is now at version **1.12**. See `API changelog`_.
 
 **New features**
 
@@ -23,15 +49,27 @@ This document describes changes between each past release.
 - Fixed showing of backend type twice in StatsD backend keys (fixes #857)
 - Fix crash when querystring parameter contains null string (fixes #882)
 - Fix crash when redirection path contains CRLF character (fixes #887)
+- Fix response status for OPTION request on version redirection (fixes #852)
+- Fix crash in PostgreSQL backend when specified bound permissions is empty (fixes #906)
+- Permissions endpoint now exposes the user permissions defined in settings (fixes #909)
+- Fix bug when two subfields are selected in partial responses (fixes #920)
+- Fix crash in permission endpoint when merging permissions from settings and from
+  permissions backend (fixes #926)
+- Fix crash in authorization policy when object ids contain unicode (fixes #931)
 
 **Internal changes**
 
-- Upgraded to Cornice 2.0 (#790)
 - Resource ``mapping`` attribute is now deprecated, use ``schema`` instead (#790)
 - Clarify implicit permissions when allowed to create child objects (#884)
-- Upgrade built-in ``admin`` plugin to Kinto Admin 1.4.1 (#866)
+- Upgrade built-in ``admin`` plugin to Kinto Admin 1.5.0
+- Do not bump timestamps in PostgreSQL storage backend when non-data columns
+  are modified.
+- Add some specifications for the permissions endpoint with regards to inherited
+  permissions
+- Add deletion of multiple groups in API docs (#928)
 
-Protocol is now at version **1.12**. See `API changelog`_.
+
+Thanks to all contributors, with a special big-up for @gabisurita!
 
 
 4.3.1 (2016-10-06)

@@ -21,11 +21,12 @@ installed_with_pypy = platform.python_implementation() == 'PyPy'
 REQUIREMENTS = [
     'colander',
     'colorama',
-    'cornice >= 1.1',  # Fix cache CORS
+    'cornice >= 2.1',
     'jsonschema',
     'jsonpatch',
     'python-dateutil',
     'pyramid_multiauth >= 0.8',  # User on policy selected event.
+    'transaction',
     'pyramid_tm',
     'requests',
     'six',
@@ -99,7 +100,7 @@ ENTRY_POINTS = {
 
 
 setup(name='kinto',
-      version='4.4.0.dev0',
+      version='5.0.1.dev0',
       description='Kinto Web Service - Store, Sync, Share, and Self-Host.',
       long_description=README + "\n\n" + CHANGELOG + "\n\n" + CONTRIBUTORS,
       license='Apache License (2.0)',

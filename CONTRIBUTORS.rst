@@ -16,7 +16,7 @@ Contributors
 * Clément Villain <choclatefr@gmail.com>
 * Dan Phrawzty <phrawzty+github@gmail.com>
 * David Larlet <david@larlet.fr>
-* Enguerran <engcolson@gmail.com>
+* Enguerran Colson <enguerran@ticabri.com>
 * Eric Bréhault <ebrehault@gmail.com>
 * Eric Le Lay <elelay@macports.org>
 * Éric Lemoine <eric.lemoine@gmail.com>
@@ -28,6 +28,7 @@ Contributors
 * Hiromipaw <silvia@nopressure.co.uk>
 * Indranil Dutta <duttaindranil497@gmail.com>
 * Jelmer van der Ploeg <jelmer@woovar.com>
+* Joël Marty
 * John Giannelos <johngiannelos@gmail.com>
 * Julien Bouquillon <contact@revolunet.com>
 * Lavish Aggarwal <lucky.lavish@gmail.com>
