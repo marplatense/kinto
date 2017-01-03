@@ -72,9 +72,9 @@ copyright = u'2015-2016 — Mozilla Services'
 # built documents.
 #
 # The short X.Y version.
-version = '5.0'
+version = '5.1'
 # The full version, including alpha/beta/rc tags.
-release = '5.0.0'
+release = '5.1.0'
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
@@ -97,26 +97,28 @@ htmlhelp_basename = 'Kintodoc'
 autodoc_member_order = 'bysource'
 # Enable nitpicky mode - which ensures that all references in the docs
 # resolve.
+# See: http://stackoverflow.com/a/30624034/186202
 nitpicky = True
 nitpick_ignore = [
-    ('py:obj', 'bool'),
     ('py:obj', 'Exception'),
-    ('py:obj', 'int'),
-    ('py:obj', 'str'),
+    ('py:obj', 'bool'),
     ('py:obj', 'dict'),
-    ('py:obj', 'list'),
-    ('py:obj', 'tuple'),
     ('py:obj', 'float'),
+    ('py:obj', 'int'),
+    ('py:obj', 'list'),
+    ('py:obj', 'str'),
+    ('py:obj', 'tuple'),
     ('py:obj', 'cornice.Service'),
     # Member autodoc fails with those:
     # kinto.core.resource.schema
     ('py:class', 'Integer'),
     ('py:class', 'String'),
     # kinto.core.resource
-    ('py:class', 'ViewSet'),
-    ('py:class', 'ShareableViewSet'),
     ('py:class', 'Model'),
+    ('py:class', 'ResourceSchema'),
     ('py:class', 'ShareableModel'),
+    ('py:class', 'ShareableViewSet'),
+    ('py:class', 'ViewSet'),
 ]
 
 

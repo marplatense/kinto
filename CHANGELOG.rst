@@ -3,24 +3,85 @@ Changelog
 
 This document describes changes between each past release.
 
-5.0.1 (unreleased)
+5.2.0 (Unreleased)
+------------------
+
+**Protocol**
+
+- Add an `OpenAPI specification <https://kinto.readthedocs.io/en/latest/api/1.x/openapi.html>`
+  for the HTTP API on ``/swagger.json`` (#997)
+
+Protocol is now at version **1.14**. See `API changelog`_.
+
+**New features**
+- When admin is enabled, ``/v1/admin`` does not return ``404`` anymore, but now redirects to
+  ``/v1/admin/`` (with trailing slash).
+
+**Bug fixes**
+
+- Add missing ``Total-Records`` field on ``DELETE`` header with plural endpoints (fixes #1000)
+
+**Internal changes**
+
+- Changed default listening address from 0.0.0.0 to 127.0.0.1 (#949)
+- Upgrade to Kinto-Admin 1.7.0
+
+
+5.1.0 (2016-12-19)
 ------------------
 
 **Protocol**
 
 - Add a ``basicauth`` capability when activated on the server. (#937)
+- Add ability to delete history entries using ``DELETE`` (#958)
+
+Protocol is now at version **1.13**. See `API changelog`_.
 
 **Bug fixes**
 
 - Permissions are now correctly removed from permission backend when a parent
   object is deleted (fixes #898)
+- Heartbeat of storage backend does not leave tombstones (fixes #985)
 - Fix ``record_id`` attribute in history entries when several records are
   modified via a batch request (fixes #942)
+- Fix crash on redirection when path contains control characters (fixes #962)
+- Fix crash on redirection when path contains unicode characters (#982)
+- Fix performance issue when fetching shared objects from plural endpoints (fixes #965)
+- Fix JSON-Merge validation (fixes #979)
+- Fix crash when ``If-Match`` or ``If-None-Match`` headers contain invalid
+  unicode data (fixes #983)
+- Add missing ``ETag`` and ``Last-Modified`` headers on ``POST`` and ``DELETE``
+  responses (#980)
+- Return 404 on non-existing objects for users with read permissions (fixes #918)
+- Fix pagination with DELETE on plural endpoints (fixes #987)
+
+**New features**
+
+- Activate ``basicauth`` in admin by default. (#943)
+- Add a setting to limit the maximum number of bytes cached in the memory backend. (#610)
+- Add a setting to exclude certain resources from being tracked by history (fixes #964)
+
+**Backend changes**
+
+- ``storage.delete_all()`` now accepts ``sorting``, ``pagination_rules`` and ``limit``
+  parameters (#997)
+- ``permissions.get_accessible_objects()`` does not support Regexp and now accepts
+  a ``with_children`` parameter (#975)
+- ``cache.set()`` now logs a warning if ``ttl`` is ``None`` (#967)
 
 **Internal changes**
 
+- Remove usage of assert (fixes #954)
 - The ``delete_object_permissions()`` of the permission backend now supports
   URI patterns (eg. ``/bucket/id*``)
+- Refactor handling of prefixed user id among request principals
+- Add a warning when a cache entry is set without TTL (ref #960)
+- Replaced insecure use of ``random.random()`` and ``random.choice(...)`` with
+  more secure ``random.SystemRandom().random()`` and
+  ``random.SystemRandom().choice(...)``. (#955)
+- Removed usage of pattern matching in PostgreSQL when not necessary (ref #907, fixes #974)
+- Insist about authentication in concepts documentation (ref #976)
+- Upgrade to Kinto-Admin 1.6.0
 
 
 5.0.0 (2016-11-18)

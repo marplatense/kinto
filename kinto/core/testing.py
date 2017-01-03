@@ -47,9 +47,10 @@ class DummyRequest(mock.MagicMock):
         self.authn_type = 'basicauth'
         self.prefixed_userid = 'basicauth:bob'
         self.effective_principals = [
-            self.prefixed_userid,
             'system.Everyone',
-            'system.Authenticated']
+            'system.Authenticated',
+            'bob']
+        self.prefixed_principals = self.effective_principals + [self.prefixed_userid]
         self.json = {}
         self.validated = {}
         self.matchdict = {}

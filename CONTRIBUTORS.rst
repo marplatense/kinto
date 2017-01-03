@@ -38,6 +38,7 @@ Contributors
 * Mathieu Agopian <mathieu@agopian.info>
 * Mathieu Leplatre <mathieu@mozilla.com>
 * Maxime Warnier <marmax@gmail.com>
+* Michael Charlton <m.charlton@mac.com>
 * Michiel de Jong <michiel@unhosted.org>
 * Mo Valipour <valipour@gmail.com>
 * Nicolas Hoizey <nicolas@hoizey.com>
@@ -54,6 +55,7 @@ Contributors
 * SwhGo_oN
 * Tarek Ziade <tarek@mozilla.com>
 * Taylor Zane Glaeser <tzglaeser@gmail.com>
+* Vamsi Sangam <vamsisangam@live.com>
 * Varna Suresh <varna96@gmail.com>
 * Wil Clouser <wclouser@mozilla.com>
 * Yann Klis <yann.klis@gmail.com>

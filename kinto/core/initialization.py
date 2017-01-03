@@ -15,6 +15,7 @@ from pyramid.interfaces import IAuthenticationPolicy
 from pyramid.settings import asbool, aslist
 from pyramid_multiauth import (MultiAuthenticationPolicy,
                                MultiAuthPolicySelected)
+
 try:
     import newrelic.agent
 except ImportError:  # pragma: no cover
@@ -77,17 +78,16 @@ def setup_version_redirection(config):
             # CORS responses should always have status 200.
             return utils.reapply_cors(request, Response())
 
-        path = request.matchdict['path']
         querystring = request.url[(request.url.rindex(request.path) +
                                    len(request.path)):]
-        redirect = '/%s/%s%s' % (route_prefix, path, querystring)
+        redirect = '/%s%s%s' % (route_prefix, request.path, querystring)
         raise HTTPTemporaryRedirect(redirect)
 
     # Disable the route prefix passed by the app.
     config.route_prefix = None
 
     config.add_route(name='redirect_to_version',
-                     pattern=r'/{path:(?!v[0-9]+)[^\r]*}')
+                     pattern=r'/{path:(?!v[0-9]+)[^\r\n]*}')
 
     config.add_view(view=_redirect_to_version_view,
                     route_name='redirect_to_version',

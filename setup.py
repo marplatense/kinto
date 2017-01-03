@@ -12,6 +12,7 @@ def read_file(filename):
         content = f.read()
     return content
 
+
 README = read_file('README.rst')
 CHANGELOG = read_file('CHANGELOG.rst')
 CONTRIBUTORS = read_file('CONTRIBUTORS.rst')
@@ -21,11 +22,13 @@ installed_with_pypy = platform.python_implementation() == 'PyPy'
 REQUIREMENTS = [
     'colander',
     'colorama',
-    'cornice >= 2.1',
+    'cornice >= 2.3',
     'jsonschema',
     'jsonpatch',
     'python-dateutil',
+    'pyramid>1.7,<1.8',
     'pyramid_multiauth >= 0.8',  # User on policy selected event.
+    'ruamel.yaml',
     'transaction',
     'pyramid_tm',
     'requests',
@@ -75,6 +78,7 @@ SETUP_REQUIRES = [
 ]
 
 TEST_REQUIREMENTS = [
+    'bravado_core',
     'pytest',
     'WebTest'
 ]
@@ -100,7 +104,7 @@ ENTRY_POINTS = {
 
 
 setup(name='kinto',
-      version='5.0.1.dev0',
+      version='5.2.0.dev0',
       description='Kinto Web Service - Store, Sync, Share, and Self-Host.',
       long_description=README + "\n\n" + CHANGELOG + "\n\n" + CONTRIBUTORS,
       license='Apache License (2.0)',
@@ -122,7 +126,7 @@ setup(name='kinto',
       author_email='storage-team@mozilla.com',
       url='https://github.com/Kinto/kinto',
       packages=find_packages(),
-      package_data={'': ['*.rst', '*.py']},
+      package_data={'': ['*.rst', '*.py', '*.yaml']},
       include_package_data=True,
       zip_safe=False,
       setup_requires=SETUP_REQUIRES,
